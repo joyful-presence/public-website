@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Joyfully Present</title>
+<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,450;9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<div class="admin-header">
+  <a href="index.html" class="brand">
+    <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present">
+    <span>Admin</span>
+  </a>
+  <div>
+    <span class="small-note" id="admin-email" style="margin-right:16px;"></span>
+    <a href="#" id="logout-link" class="btn-small">Sign out</a>
+  </div>
+</div>
+
+<div class="admin-shell" id="admin-shell" style="display:none;">
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="services">Services</button>
+    <button class="tab-btn" data-tab="appointments">Appointments</button>
+    <button class="tab-btn" data-tab="invoices">Invoices</button>
+    <button class="tab-btn" data-tab="availability">Availability</button>
+    <button class="tab-btn" data-tab="payments">Payment Settings</button>
+  </div>
+
+  <!-- ===================== SERVICES ===================== -->
+  <div class="tab-panel active" id="tab-services">
+    <div class="section-title-row"><h2 style="margin:0;">Services</h2></div>
+    <div class="inline-form" id="service-form">
+      <div class="form-group"><label>Name</label><input type="text" id="svc-name"></div>
+      <div class="form-group"><label>Duration (min)</label><input type="number" id="svc-duration" value="60"></div>
+      <div class="form-group"><label>Price ($)</label><input type="number" id="svc-price" step="0.01"></div>
+      <div class="form-group"><label>Active</label><input type="checkbox" id="svc-active" checked style="width:auto;"></div>
+      <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="svc-description"></div>
+      <button class="btn btn-primary" id="svc-save-btn" onclick="saveService()">Add Service</button>
+      <button class="btn-small" id="svc-cancel-btn" style="display:none;" onclick="resetServiceForm()">Cancel Edit</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Name</th><th>Duration</th><th>Price</th><th>Active</th><th></th></tr></thead>
+      <tbody id="services-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== APPOINTMENTS ===================== -->
+  <div class="tab-panel" id="tab-appointments">
+    <div class="section-title-row"><h2 style="margin:0;">Appointments</h2></div>
+    <table class="admin-table">
+      <thead><tr><th>When</th><th>Service</th><th>Customer</th><th>Status</th><th>Payment</th></tr></thead>
+      <tbody id="appointments-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== INVOICES ===================== -->
+  <div class="tab-panel" id="tab-invoices">
+    <div class="section-title-row"><h2 style="margin:0;">Invoices</h2></div>
+
+    <div class="inline-form" style="flex-direction:column; align-items:stretch;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="form-group"><label>Customer name</label><input type="text" id="inv-cust-name"></div>
+        <div class="form-group"><label>Customer email</label><input type="text" id="inv-cust-email"></div>
+        <div class="form-group"><label>Due date</label><input type="date" id="inv-due-date"></div>
+      </div>
+      <div id="inv-items"></div>
+      <button class="btn-small" onclick="addInvoiceItemRow()" style="align-self:flex-start;">+ Add line item</button>
+
+      <div style="margin-top:16px;">
+        <label style="font-weight:600; font-size:0.85rem;">Payment methods to offer on this invoice</label>
+        <div id="inv-payment-methods" style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px;"><label>Notes</label><input type="text" id="inv-notes"></div>
+      <button class="btn btn-primary" style="align-self:flex-start; margin-top:10px;" onclick="createInvoice()">Create Invoice</button>
+    </div>
+
+    <table class="admin-table">
+      <thead><tr><th>Customer</th><th>Amount</th><th>Status</th><th>Methods Offered</th><th></th></tr></thead>
+      <tbody id="invoices-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== AVAILABILITY ===================== -->
+  <div class="tab-panel" id="tab-availability">
+    <div class="section-title-row"><h2 style="margin:0;">Weekly Hours</h2></div>
+    <div class="inline-form">
+      <div class="form-group">
+        <label>Day</label>
+        <select id="avail-weekday">
+          <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+          <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Start</label><input type="time" id="avail-start" value="09:00"></div>
+      <div class="form-group"><label>End</label><input type="time" id="avail-end" value="17:00"></div>
+      <button class="btn btn-primary" onclick="addAvailability()">Add Hours</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Day</th><th>Start</th><th>End</th><th></th></tr></thead>
+      <tbody id="availability-tbody"></tbody>
+    </table>
+
+    <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Blocked Dates</h2></div>
+    <div class="inline-form">
+      <div class="form-group"><label>Date</label><input type="date" id="block-date"></div>
+      <div class="form-group" style="flex:2;"><label>Reason</label><input type="text" id="block-reason"></div>
+      <button class="btn btn-primary" onclick="addBlockedDate()">Block Date</button>
+    </div>
+    <table class="admin-table">
+      <thead><tr><th>Date</th><th>Reason</th><th></th></tr></thead>
+      <tbody id="blocked-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== PAYMENT SETTINGS ===================== -->
+  <div class="tab-panel" id="tab-payments">
+    <div class="section-title-row"><h2 style="margin:0;">Payment Settings</h2></div>
+    <p class="small-note">Check which methods you currently accept. Zelle and Venmo are manual — you'll still mark invoices "Paid" yourself once you've received the money.</p>
+
+    <div class="inline-form" style="flex-direction:column; align-items:stretch; gap:18px;">
+      <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="pay-stripe" style="width:auto;"> Stripe</label>
+      <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="pay-paypal" style="width:auto;"> PayPal</label>
+
+      <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="pay-zelle" style="width:auto;"> Zelle</label>
+      <div class="form-group"><label>Zelle instructions (e.g. email or phone to send to)</label><input type="text" id="zelle-instructions"></div>
+
+      <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" id="pay-venmo" style="width:auto;"> Venmo</label>
+      <div class="form-group"><label>Venmo instructions (e.g. @handle)</label><input type="text" id="venmo-instructions"></div>
+
+      <button class="btn btn-primary" style="align-self:flex-start;" onclick="savePaymentSettings()">Save Payment Settings</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="admin-shell" id="login-prompt" style="display:none; text-align:center;">
+  <p>You're not signed in.</p>
+  <a href="admin-login.html" class="btn btn-primary">Go to Login</a>
+</div>
+
+<script src="app-config.js"></script>
+<script>
+let editingServiceId = null;
+let invoiceItemCount = 0;
+let enabledPaymentMethods = [];
+
+async function init() {
+  const res = await fetch(`${API_BASE}/admin/me`, { credentials: "include" });
+  const data = await res.json();
+  if (!data.admin) {
+    document.getElementById("login-prompt").style.display = "block";
+    return;
+  }
+  document.getElementById("admin-email").textContent = data.admin.email;
+  document.getElementById("admin-shell").style.display = "block";
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+
+  document.getElementById("logout-link").addEventListener("click", async (e) => {
+    e.preventDefault();
+    await fetch(`${API_BASE}/admin/logout`, { method: "POST", credentials: "include" });
+    location.href = "admin-login.html";
+  });
+
+  loadServices();
+  loadAppointments();
+  loadPaymentSettingsForInvoiceForm();
+  loadInvoices();
+  loadAvailability();
+  loadBlockedDates();
+  loadPaymentSettings();
+  addInvoiceItemRow();
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${name}`));
+}
+
+// ==================== SERVICES ====================
+
+async function loadServices() {
+  const res = await fetch(`${API_BASE}/admin/services`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("services-tbody");
+  tbody.innerHTML = "";
+  data.services.forEach((s) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.duration_minutes} min</td>
+      <td>${formatMoney(s.price_cents)}</td>
+      <td>${s.active ? "Yes" : "No"}</td>
+      <td>
+        <button class="btn-small" data-edit="${s.id}">Edit</button>
+        <button class="btn-small danger" data-delete="${s.id}">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("[data-edit]").addEventListener("click", () => editService(s));
+    tr.querySelector("[data-delete]").addEventListener("click", () => deleteService(s.id));
+  });
+}
+
+function editService(s) {
+  editingServiceId = s.id;
+  document.getElementById("svc-name").value = s.name;
+  document.getElementById("svc-duration").value = s.duration_minutes;
+  document.getElementById("svc-price").value = (s.price_cents / 100).toFixed(2);
+  document.getElementById("svc-active").checked = !!s.active;
+  document.getElementById("svc-description").value = s.description || "";
+  document.getElementById("svc-save-btn").textContent = "Save Changes";
+  document.getElementById("svc-cancel-btn").style.display = "inline-block";
+}
+
+function resetServiceForm() {
+  editingServiceId = null;
+  document.getElementById("svc-name").value = "";
+  document.getElementById("svc-duration").value = 60;
+  document.getElementById("svc-price").value = "";
+  document.getElementById("svc-active").checked = true;
+  document.getElementById("svc-description").value = "";
+  document.getElementById("svc-save-btn").textContent = "Add Service";
+  document.getElementById("svc-cancel-btn").style.display = "none";
+}
+
+async function saveService() {
+  const body = {
+    name: document.getElementById("svc-name").value.trim(),
+    duration_minutes: parseInt(document.getElementById("svc-duration").value, 10),
+    price_cents: Math.round(parseFloat(document.getElementById("svc-price").value || "0") * 100),
+    active: document.getElementById("svc-active").checked,
+    description: document.getElementById("svc-description").value.trim(),
+    sort_order: 0,
+  };
+  if (!body.name) { alert("Please enter a service name."); return; }
+
+  if (editingServiceId) {
+    await fetch(`${API_BASE}/admin/services/${editingServiceId}`, {
+      method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  } else {
+    await fetch(`${API_BASE}/admin/services`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  }
+  resetServiceForm();
+  loadServices();
+}
+
+async function deleteService(id) {
+  if (!confirm("Delete this service? This can't be undone.")) return;
+  await fetch(`${API_BASE}/admin/services/${id}`, { method: "DELETE", credentials: "include" });
+  loadServices();
+}
+
+// ==================== APPOINTMENTS ====================
+
+async function loadAppointments() {
+  const res = await fetch(`${API_BASE}/admin/appointments`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("appointments-tbody");
+  tbody.innerHTML = "";
+  data.appointments.forEach((a) => {
+    const when = new Date(a.start_time).toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+    });
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${when}</td>
+      <td>${a.service_name}</td>
+      <td>${a.customer_name}<br><span class="small-note">${a.customer_email}</span></td>
+      <td>
+        <select data-status="${a.id}">
+          ${["pending","confirmed","completed","cancelled"].map(s => `<option value="${s}" ${s===a.status?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </td>
+      <td>
+        <select data-payment="${a.id}">
+          ${["unpaid","paid","refunded"].map(s => `<option value="${s}" ${s===a.payment_status?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-status]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      await fetch(`${API_BASE}/admin/appointments/${sel.dataset.status}`, {
+        method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: sel.value }),
+      });
+    });
+  });
+  tbody.querySelectorAll("[data-payment]").forEach((sel) => {
+    sel.addEventListener("change", async () => {
+      await fetch(`${API_BASE}/admin/appointments/${sel.dataset.payment}`, {
+        method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_status: sel.value }),
+      });
+    });
+  });
+}
+
+// ==================== INVOICES ====================
+
+function addInvoiceItemRow() {
+  invoiceItemCount++;
+  const id = invoiceItemCount;
+  const div = document.createElement("div");
+  div.style.cssText = "display:flex; gap:10px; margin-bottom:10px;";
+  div.innerHTML = `
+    <input type="text" placeholder="Description" class="inv-item-desc" style="flex:2; padding:10px; border:1px solid var(--line); border-radius:8px;">
+    <input type="number" placeholder="Qty" value="1" class="inv-item-qty" style="width:70px; padding:10px; border:1px solid var(--line); border-radius:8px;">
+    <input type="number" placeholder="Unit price $" step="0.01" class="inv-item-price" style="width:120px; padding:10px; border:1px solid var(--line); border-radius:8px;">
+  `;
+  document.getElementById("inv-items").appendChild(div);
+}
+
+async function loadPaymentSettingsForInvoiceForm() {
+  const res = await fetch(`${API_BASE}/admin/payment-settings`, { credentials: "include" });
+  const data = await res.json();
+  const s = data.settings;
+  enabledPaymentMethods = [];
+  if (s.stripe_enabled) enabledPaymentMethods.push("stripe");
+  if (s.paypal_enabled) enabledPaymentMethods.push("paypal");
+  if (s.zelle_enabled) enabledPaymentMethods.push("zelle");
+  if (s.venmo_enabled) enabledPaymentMethods.push("venmo");
+
+  const container = document.getElementById("inv-payment-methods");
+  container.innerHTML = enabledPaymentMethods.length
+    ? enabledPaymentMethods.map(m => `<label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" class="inv-method" value="${m}" checked style="width:auto;"> ${m[0].toUpperCase() + m.slice(1)}</label>`).join("")
+    : `<span class="small-note">No payment methods enabled yet — set them up in the Payment Settings tab.</span>`;
+}
+
+async function createInvoice() {
+  const items = [];
+  document.querySelectorAll("#inv-items > div").forEach((row) => {
+    const desc = row.querySelector(".inv-item-desc").value.trim();
+    const qty = parseInt(row.querySelector(".inv-item-qty").value || "1", 10);
+    const price = Math.round(parseFloat(row.querySelector(".inv-item-price").value || "0") * 100);
+    if (desc) items.push({ description: desc, quantity: qty, unit_price_cents: price });
+  });
+  if (!items.length) { alert("Add at least one line item."); return; }
+
+  const name = document.getElementById("inv-cust-name").value.trim();
+  const email = document.getElementById("inv-cust-email").value.trim();
+  if (!name || !email) { alert("Please enter the customer's name and email."); return; }
+
+  const methods = Array.from(document.querySelectorAll(".inv-method:checked")).map(el => el.value);
+
+  const body = {
+    new_customer: { name, email },
+    items,
+    due_date: document.getElementById("inv-due-date").value || null,
+    notes: document.getElementById("inv-notes").value.trim(),
+    allowed_payment_methods: methods,
+  };
+
+  await fetch(`${API_BASE}/admin/invoices`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+
+  document.getElementById("inv-cust-name").value = "";
+  document.getElementById("inv-cust-email").value = "";
+  document.getElementById("inv-due-date").value = "";
+  document.getElementById("inv-notes").value = "";
+  document.getElementById("inv-items").innerHTML = "";
+  invoiceItemCount = 0;
+  addInvoiceItemRow();
+  loadInvoices();
+}
+
+async function loadInvoices() {
+  const res = await fetch(`${API_BASE}/admin/invoices`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("invoices-tbody");
+  tbody.innerHTML = "";
+  data.invoices.forEach((inv) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${inv.customer_name}<br><span class="small-note">${inv.customer_email}</span></td>
+      <td>${formatMoney(inv.amount_cents)}</td>
+      <td>${inv.status}</td>
+      <td>${(inv.allowed_payment_methods || "").split(",").filter(Boolean).join(", ") || "—"}</td>
+      <td>${inv.status !== "paid" ? `<button class="btn-small" data-mark-paid="${inv.id}">Mark Paid</button>` : ""}</td>`;
+    tbody.appendChild(tr);
+    const btn = tr.querySelector("[data-mark-paid]");
+    if (btn) btn.addEventListener("click", async () => {
+      await fetch(`${API_BASE}/admin/invoices/${inv.id}`, {
+        method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paid" }),
+      });
+      loadInvoices();
+    });
+  });
+}
+
+// ==================== AVAILABILITY ====================
+
+const WEEKDAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+async function loadAvailability() {
+  const res = await fetch(`${API_BASE}/admin/availability`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("availability-tbody");
+  tbody.innerHTML = "";
+  data.availability.forEach((a) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${WEEKDAY_NAMES[a.weekday]}</td><td>${a.start_time}</td><td>${a.end_time}</td><td><button class="btn-small danger" data-id="${a.id}">Delete</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("button").addEventListener("click", async () => {
+      await fetch(`${API_BASE}/admin/availability/${a.id}`, { method: "DELETE", credentials: "include" });
+      loadAvailability();
+    });
+  });
+}
+
+async function addAvailability() {
+  const body = {
+    weekday: parseInt(document.getElementById("avail-weekday").value, 10),
+    start_time: document.getElementById("avail-start").value,
+    end_time: document.getElementById("avail-end").value,
+  };
+  await fetch(`${API_BASE}/admin/availability`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  loadAvailability();
+}
+
+async function loadBlockedDates() {
+  const res = await fetch(`${API_BASE}/admin/blocked-dates`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("blocked-tbody");
+  tbody.innerHTML = "";
+  data.blocked_dates.forEach((b) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${b.date}</td><td>${b.reason || ""}</td><td><button class="btn-small danger" data-id="${b.id}">Delete</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("button").addEventListener("click", async () => {
+      await fetch(`${API_BASE}/admin/blocked-dates/${b.id}`, { method: "DELETE", credentials: "include" });
+      loadBlockedDates();
+    });
+  });
+}
+
+async function addBlockedDate() {
+  const body = { date: document.getElementById("block-date").value, reason: document.getElementById("block-reason").value.trim() };
+  if (!body.date) { alert("Pick a date."); return; }
+  await fetch(`${API_BASE}/admin/blocked-dates`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  document.getElementById("block-date").value = "";
+  document.getElementById("block-reason").value = "";
+  loadBlockedDates();
+}
+
+// ==================== PAYMENT SETTINGS ====================
+
+async function loadPaymentSettings() {
+  const res = await fetch(`${API_BASE}/admin/payment-settings`, { credentials: "include" });
+  const data = await res.json();
+  const s = data.settings;
+  document.getElementById("pay-stripe").checked = !!s.stripe_enabled;
+  document.getElementById("pay-paypal").checked = !!s.paypal_enabled;
+  document.getElementById("pay-zelle").checked = !!s.zelle_enabled;
+  document.getElementById("pay-venmo").checked = !!s.venmo_enabled;
+  document.getElementById("zelle-instructions").value = s.zelle_instructions || "";
+  document.getElementById("venmo-instructions").value = s.venmo_instructions || "";
+}
+
+async function savePaymentSettings() {
+  const body = {
+    stripe_enabled: document.getElementById("pay-stripe").checked,
+    paypal_enabled: document.getElementById("pay-paypal").checked,
+    zelle_enabled: document.getElementById("pay-zelle").checked,
+    venmo_enabled: document.getElementById("pay-venmo").checked,
+    zelle_instructions: document.getElementById("zelle-instructions").value.trim(),
+    venmo_instructions: document.getElementById("venmo-instructions").value.trim(),
+  };
+  await fetch(`${API_BASE}/admin/payment-settings`, {
+    method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  loadPaymentSettingsForInvoiceForm();
+  alert("Payment settings saved.");
+}
+
+init();
+</script>
+
+</body>
+</html>
