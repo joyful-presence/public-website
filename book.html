@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session | Joyfully Present LLC</title>
+<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,450;9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present">
+      <span>Joyfully Present</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Book a Session</span>
+      <h1>Let's find a time</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+
+      <div class="steps">
+        <div class="step-dot active" id="dot-1"><span class="num">1</span>Service</div>
+        <div class="step-dot" id="dot-2"><span class="num">2</span>Time</div>
+        <div class="step-dot" id="dot-3"><span class="num">3</span>Details</div>
+        <div class="step-dot" id="dot-4"><span class="num">4</span>Confirm</div>
+      </div>
+
+      <div id="error-box"></div>
+
+      <!-- Step 1: service -->
+      <div class="step-panel" id="step-1">
+        <div class="option-list" id="service-list">
+          <p class="small-note">Loading services…</p>
+        </div>
+      </div>
+
+      <!-- Step 2: date + time -->
+      <div class="step-panel" id="step-2" style="display:none;">
+        <input type="date" class="date-input" id="date-input">
+        <div class="slot-grid" id="slot-grid"></div>
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(1)">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 3: details -->
+      <div class="step-panel" id="step-3" style="display:none;">
+        <div id="signed-in-view" style="display:none;">
+          <div class="signed-in-box" id="signed-in-box"></div>
+        </div>
+
+        <div id="guest-view">
+          <a class="google-btn" id="google-signin-btn" href="#">Continue with Google</a>
+          <a class="google-btn" id="sso-signin-btn" href="#" style="margin-top:10px;">Sign In / Create Account</a>
+          <div class="divider-or">or enter your details</div>
+          <div class="form-group">
+            <label for="g-name">Full name</label>
+            <input type="text" id="g-name" required>
+          </div>
+          <div class="form-group">
+            <label for="g-email">Email</label>
+            <input type="email" id="g-email" required>
+          </div>
+          <div class="form-group">
+            <label for="g-phone">Phone (optional)</label>
+            <input type="tel" id="g-phone">
+          </div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(2)">Back</button>
+          <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+      </div>
+
+      <!-- Step 4: confirmation -->
+      <div class="step-panel" id="step-4" style="display:none;">
+        <div class="success-box">
+          <div class="check">&#10003;</div>
+          <h2>You're booked</h2>
+          <p id="confirm-summary"></p>
+          <p id="confirm-token-note" class="small-note" style="display:none;"></p>
+          <a href="index.html" class="btn btn-primary" style="margin-top:10px;">Back to Home</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present">
+        <span>Joyfully Present</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present LLC</span>
+      <span>hello@joyfullypresent.life</span>
+    </div>
+  </div>
+</footer>
+
+<script src="app-config.js"></script>
+<script>
+let selectedService = null;
+let selectedSlot = null;
+let currentCustomer = null;
+
+const params = new URLSearchParams(location.search);
+const preselectServiceId = params.get("service");
+
+function showError(msg) {
+  document.getElementById("error-box").innerHTML = msg ? `<div class="error-note">${msg}</div>` : "";
+}
+
+function goToStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`step-${i}`).style.display = i === n ? "block" : "none";
+    const dot = document.getElementById(`dot-${i}`);
+    dot.classList.toggle("active", i === n);
+    dot.classList.toggle("done", i < n);
+  }
+  showError("");
+}
+
+// ---------- Step 1: services ----------
+async function loadServices() {
+  const res = await fetch(`${API_BASE}/api/services`);
+  const data = await res.json();
+  const list = document.getElementById("service-list");
+  list.innerHTML = "";
+  data.services.forEach((s) => {
+    const el = document.createElement("div");
+    el.className = "option-card";
+    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min</p></div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
+    el.addEventListener("click", () => selectService(s, el));
+    list.appendChild(el);
+    if (preselectServiceId === s.id) selectService(s, el);
+  });
+}
+
+function selectService(service, el) {
+  selectedService = service;
+  document.querySelectorAll("#service-list .option-card").forEach((c) => c.classList.remove("selected"));
+  el.classList.add("selected");
+  goToStep(2);
+  const dateInput = document.getElementById("date-input");
+  const today = new Date().toISOString().split("T")[0];
+  dateInput.min = today;
+  if (!dateInput.value) dateInput.value = today;
+  loadSlots();
+}
+
+// ---------- Step 2: date + time ----------
+document.getElementById("date-input").addEventListener("change", loadSlots);
+
+async function loadSlots() {
+  const date = document.getElementById("date-input").value;
+  if (!date || !selectedService) return;
+  const grid = document.getElementById("slot-grid");
+  grid.innerHTML = `<p class="empty-note">Loading times…</p>`;
+  const res = await fetch(`${API_BASE}/api/availability?date=${date}&service_id=${selectedService.id}`);
+  const data = await res.json();
+  grid.innerHTML = "";
+  if (!data.slots || !data.slots.length) {
+    grid.innerHTML = `<p class="empty-note">No times available that day — try another date.</p>`;
+    return;
+  }
+  data.slots.forEach((slot) => {
+    const btn = document.createElement("button");
+    btn.className = "slot-btn";
+    btn.textContent = slot.label.split(", ").slice(1).join(", ");
+    btn.addEventListener("click", () => {
+      selectedSlot = slot;
+      document.querySelectorAll(".slot-btn").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      goToStep(3);
+      checkSignedIn();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// ---------- Step 3: details ----------
+async function checkSignedIn() {
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
+  const data = await res.json();
+  currentCustomer = data.customer;
+  const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
+  document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
+  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+  if (currentCustomer) {
+    document.getElementById("signed-in-view").style.display = "block";
+    document.getElementById("guest-view").style.display = "none";
+    document.getElementById("signed-in-box").innerHTML = `Booking as <strong>${currentCustomer.name}</strong> (${currentCustomer.email})`;
+  } else {
+    document.getElementById("signed-in-view").style.display = "none";
+    document.getElementById("guest-view").style.display = "block";
+  }
+}
+
+async function submitBooking() {
+  showError("");
+  const body = { service_id: selectedService.id, start_time: selectedSlot.start_time };
+
+  if (!currentCustomer) {
+    const name = document.getElementById("g-name").value.trim();
+    const email = document.getElementById("g-email").value.trim();
+    const phone = document.getElementById("g-phone").value.trim();
+    if (!name || !email) { showError("Please enter your name and email."); return; }
+    body.guest = { name, email, phone };
+  }
+
+  const res = await fetch(`${API_BASE}/api/book`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+
+  if (!res.ok) { showError(data.error || "Something went wrong — please try again."); return; }
+
+  document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.label}`;
+  if (data.guest_token) {
+    document.getElementById("confirm-token-note").style.display = "block";
+    document.getElementById("confirm-token-note").innerHTML =
+      `Bookmark this link to view or cancel your appointment: <br><a href="appointment.html?token=${data.guest_token}">${location.origin}/appointment.html?token=${data.guest_token}</a>`;
+  }
+  goToStep(4);
+}
+
+loadServices();
+
+// If arriving back from Google sign-in with a service pre-selected, jump to step 3 once loaded.
+if (preselectServiceId) {
+  checkSignedIn();
+}
+</script>
+
+</body>
+</html>
