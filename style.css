@@ -6,17 +6,20 @@
 
 :root {
   --bg: #FFFFFF;
-  --bg-soft: #EEF6F5;
+  --bg-soft: #F1F8FB;
   --ink: #22312F;
   --ink-soft: #55696A;
 
-  --green: #6FAE8B;
-  --green-deep: #3E8063;
-  --green-pale: #E2F1E7;
+  --teal: #B1E4E3;        /* Pantone 317 C */
+  --teal-deep: #2F7A78;   /* darker derivative, used for text/icons */
+  --teal-pale: #E3F6F5;
 
-  --blue: #4C93C4;
-  --blue-deep: #1B5C86;
-  --blue-pale: #E3F1FA;
+  --blue: #ABCAE9;        /* Pantone 277 C */
+  --blue-pale: #EAF1FB;
+
+  --btn: #6CACE4;         /* Pantone 284 C — buttons only */
+  --btn-deep: #4F93D6;    /* darker derivative, hover + accent text */
+  --btn-text: #17262B;    /* dark text on buttons, for contrast */
 
   --line: rgba(34, 49, 47, 0.12);
   --white: #FFFFFF;
@@ -79,7 +82,7 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--green-deep);
+  color: var(--teal-deep);
   margin-bottom: 1em;
 }
 
@@ -103,17 +106,17 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
 .btn:hover { transform: translateY(-1px); }
 
 .btn-primary {
-  background: var(--blue-deep);
-  color: var(--white);
+  background: var(--btn);
+  color: var(--btn-text);
 }
-.btn-primary:hover { background: var(--blue); }
+.btn-primary:hover { background: var(--btn-deep); }
 
 .btn-ghost {
   background: transparent;
   color: var(--ink);
   border-color: var(--line);
 }
-.btn-ghost:hover { border-color: var(--blue-deep); }
+.btn-ghost:hover { border-color: var(--btn-deep); }
 
 /* ---------- nav ---------- */
 
@@ -171,7 +174,7 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
 
 .nav-links a:hover,
 .nav-links a[aria-current="page"] {
-  color: var(--blue-deep);
+  color: var(--btn-deep);
 }
 
 .nav-toggle {
@@ -223,7 +226,7 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
 .breath-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid var(--green);
+  border: 1px solid var(--teal);
   opacity: 0.35;
 }
 
@@ -235,9 +238,9 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
   width: 130px;
   height: 130px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--blue-pale), var(--green-pale) 60%, var(--blue-pale) 100%);
+  background: radial-gradient(circle at 35% 30%, var(--blue-pale), var(--teal-pale) 60%, var(--btn) 100%);
   animation: breathe 6s ease-in-out infinite;
-  box-shadow: 0 20px 60px rgba(27, 92, 134, 0.22);
+  box-shadow: 0 20px 60px rgba(79, 147, 214, 0.22);
 }
 
 .breath-ring.r1 { animation: breathe 6s ease-in-out infinite; }
@@ -293,7 +296,7 @@ section { padding: 78px 0; }
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--green-pale);
+  background: var(--teal-pale);
   margin-bottom: 18px;
 }
 
@@ -319,7 +322,7 @@ section { padding: 78px 0; }
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 24px 48px rgba(27, 92, 134, 0.10);
+  box-shadow: 0 24px 48px rgba(79, 147, 214, 0.12);
 }
 
 .card h3 { margin-bottom: 10px; }
@@ -328,7 +331,7 @@ section { padding: 78px 0; }
   display: flex;
   gap: 10px;
   font-size: 0.85rem;
-  color: var(--green-deep);
+  color: var(--teal-deep);
   font-weight: 600;
   margin-bottom: 14px;
 }
@@ -355,7 +358,7 @@ section { padding: 78px 0; }
   font-family: var(--font-display);
   font-size: 1.6rem;
   white-space: nowrap;
-  color: var(--blue-deep);
+  color: var(--btn-deep);
 }
 
 .service-card .price small {
@@ -397,15 +400,15 @@ section { padding: 78px 0; }
 /* ---------- CTA banner ---------- */
 
 .cta-banner {
-  background: var(--blue-deep);
+  background: var(--btn);
   border-radius: var(--radius-lg);
   padding: 60px 48px;
   text-align: center;
   color: var(--white);
 }
 
-.cta-banner h2, .cta-banner p { color: var(--white); }
-.cta-banner .btn-primary { background: var(--white); color: var(--blue-deep); }
+.cta-banner h2, .cta-banner p { color: var(--btn-text); }
+.cta-banner .btn-primary { background: var(--white); color: var(--btn-text); }
 .cta-banner .btn-primary:hover { background: var(--blue-pale); }
 
 /* ---------- about page ---------- */
@@ -420,15 +423,15 @@ section { padding: 78px 0; }
 .photo-placeholder {
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, var(--green-pale), var(--blue-pale));
+  background: linear-gradient(160deg, var(--teal-pale), var(--blue-pale));
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 24px;
-  color: var(--blue-deep);
+  color: var(--btn-deep);
   font-size: 0.9rem;
-  border: 1px dashed var(--green);
+  border: 1px dashed var(--teal);
 }
 
 .credentials {
@@ -453,7 +456,7 @@ section { padding: 78px 0; }
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--teal);
 }
 
 @media (max-width: 850px) {
@@ -495,7 +498,7 @@ section { padding: 78px 0; }
   content: "+";
   font-family: var(--font-body);
   font-size: 1.4rem;
-  color: var(--blue-deep);
+  color: var(--btn-deep);
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -541,7 +544,7 @@ section { padding: 78px 0; }
   font-size: 0.92rem;
 }
 
-.footer-links a:hover { color: var(--blue-deep); }
+.footer-links a:hover { color: var(--btn-deep); }
 
 .footer-bottom {
   border-top: 1px solid var(--line);
@@ -557,7 +560,7 @@ section { padding: 78px 0; }
 /* ---------- focus states ---------- */
 
 a:focus-visible, button:focus-visible, summary:focus-visible {
-  outline: 2px solid var(--blue-deep);
+  outline: 2px solid var(--btn-deep);
   outline-offset: 3px;
   border-radius: 4px;
 }
