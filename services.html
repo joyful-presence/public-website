@@ -40,58 +40,40 @@
   </section>
 
   <section>
-    <div class="wrap" style="max-width:840px;">
-
-      <div class="service-card">
-        <div>
-          <h3>Discovery Call</h3>
-          <p>A relaxed, no-pressure call to get to know each other, talk through what you're facing, and see if we're the right fit. No obligation.</p>
-        </div>
-        <div class="price">Free<small>20 minutes</small></div>
-      </div>
-
-      <div class="service-card">
-        <div>
-          <h3>Single Session</h3>
-          <p>One focused hour for a specific question, decision, or moment you're moving through. Great as a standalone or between packages.</p>
-        </div>
-        <div class="price">$150<small>60 minutes</small></div>
-      </div>
-
-      <div class="service-card">
-        <div>
-          <h3>Coaching Package &mdash; 3 Months</h3>
-          <p>Weekly sessions with structured support between calls. Best for real, sustained change &mdash; a career shift, a life transition, or building new patterns that stick.</p>
-        </div>
-        <div class="price">$1,800<small>12 sessions</small></div>
-      </div>
-
-      <div class="service-card">
-        <div>
-          <h3>Group Workshop</h3>
-          <p>A seasonal small-group workshop on presence, direction, and intentional living. Limited seats, held virtually.</p>
-        </div>
-        <div class="price">$65<small>per seat</small></div>
-      </div>
-
-      <p style="text-align:center; color:var(--ink-soft); font-size:0.9rem; margin-top:8px;">
-        [Placeholder pricing &mdash; update to reflect your actual rates.]
-      </p>
-
-    </div>
-  </section>
-
-  <section class="section-soft" id="book">
-    <div class="wrap">
-      <div class="cta-banner">
-        <h2>Online booking is on its way</h2>
-        <p>The scheduler is being built right now. In the meantime, email to reserve your spot and I'll get back to you within a day.</p>
-        <a href="mailto:hello@joyfullypresent.life" class="btn btn-primary">Email to Book</a>
-      </div>
+    <div class="wrap" style="max-width:840px;" id="services-wrap">
+      <p class="small-note">Loading services…</p>
     </div>
   </section>
 
 </main>
+
+<script src="app-config.js"></script>
+<script>
+async function loadServices() {
+  const res = await fetch(`${API_BASE}/api/services`);
+  const data = await res.json();
+  const wrap = document.getElementById("services-wrap");
+  wrap.innerHTML = "";
+  data.services.forEach((s) => {
+    const card = document.createElement("div");
+    card.className = "service-card";
+    card.innerHTML = `
+      <div>
+        <h3>${s.name}</h3>
+        <p>${s.description || ""}</p>
+      </div>
+      <div style="text-align:right;">
+        <div class="price">${formatMoney(s.price_cents)}<small>${s.duration_minutes} minutes</small></div>
+        <a href="book.html?service=${s.id}" class="btn btn-primary" style="margin-top:12px;">Book This</a>
+      </div>`;
+    wrap.appendChild(card);
+  });
+  if (!data.services.length) {
+    wrap.innerHTML = `<p class="small-note">Services are being set up — check back soon.</p>`;
+  }
+}
+loadServices();
+</script>
 
 <footer class="site-footer">
   <div class="wrap">
