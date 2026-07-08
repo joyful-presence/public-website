@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login | Joyfully Present</title>
+<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,450;9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Admin</span>
+      <h1>Sign in</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+      <div id="error-box"></div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doLogin()">Sign In</button>
+      <p class="small-note" style="text-align:center; margin-top:22px;">
+        <a href="admin-setup.html">First time? Set up your admin account</a>
+      </p>
+    </div>
+  </section>
+</main>
+
+<script src="app-config.js"></script>
+<script>
+function showError(msg) {
+  document.getElementById("error-box").innerHTML = msg ? `<div class="error-note">${msg}</div>` : "";
+}
+
+async function doLogin() {
+  showError("");
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  if (!email || !password) { showError("Please enter your email and password."); return; }
+
+  const res = await fetch(`${API_BASE}/admin/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) { showError(data.error || "Sign in failed."); return; }
+  location.href = "admin.html";
+}
+</script>
+
+</body>
+</html>
