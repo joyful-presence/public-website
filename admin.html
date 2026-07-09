@@ -4,16 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin | Joyfully Present</title>
-<link rel="icon" href="https://joyfullypresent.life/logo.png">
-  <link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
-<link rel="shortcut icon" href="/favicon/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Joyfully Present" />
-<link rel="manifest" href="/favicon/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="booking.css">
 </head>
@@ -49,22 +46,28 @@
       <div class="form-group"><label>Price ($)</label><input type="number" id="svc-price" step="0.01"></div>
       <div class="form-group"><label>Active</label><input type="checkbox" id="svc-active" checked style="width:auto;"></div>
       <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="svc-description"></div>
+      <div class="form-group"><label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="svc-is-package" style="width:auto;" onchange="togglePackageFields()"> This is a session bundle</label></div>
+      <div class="form-group" id="svc-package-size-group" style="display:none;"><label># of Sessions Included</label><input type="number" id="svc-package-size" value="4"></div>
+      <div class="form-group" id="svc-redeem-group" style="display:none; flex:2;">
+        <label>Redeemable As</label>
+        <select id="svc-redeemable-service"></select>
+      </div>
       <button class="btn btn-primary" id="svc-save-btn" onclick="saveService()">Add Service</button>
       <button class="btn-small" id="svc-cancel-btn" style="display:none;" onclick="resetServiceForm()">Cancel Edit</button>
     </div>
-    <table class="admin-table">
+    <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>Name</th><th>Duration</th><th>Price</th><th>Active</th><th></th></tr></thead>
       <tbody id="services-tbody"></tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- ===================== APPOINTMENTS ===================== -->
   <div class="tab-panel" id="tab-appointments">
     <div class="section-title-row"><h2 style="margin:0;">Appointments</h2></div>
-    <table class="admin-table">
+    <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>When</th><th>Service</th><th>Customer</th><th>Status</th><th>Payment</th><th>Zoom Link</th></tr></thead>
       <tbody id="appointments-tbody"></tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- ===================== INVOICES ===================== -->
@@ -89,10 +92,10 @@
       <button class="btn btn-primary" style="align-self:flex-start; margin-top:10px;" onclick="createInvoice()">Create Invoice</button>
     </div>
 
-    <table class="admin-table">
+    <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>Customer</th><th>Amount</th><th>Status</th><th>Methods Offered</th><th></th></tr></thead>
       <tbody id="invoices-tbody"></tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- ===================== AVAILABILITY ===================== -->
@@ -111,10 +114,10 @@
       <div class="form-group"><label>End</label><input type="time" id="avail-end" value="17:00"></div>
       <button class="btn btn-primary" onclick="addAvailability()">Add Hours</button>
     </div>
-    <table class="admin-table">
+    <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>Day</th><th>Start</th><th>End</th><th></th></tr></thead>
       <tbody id="availability-tbody"></tbody>
-    </table>
+    </table></div>
 
     <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Blocked Dates</h2></div>
     <div class="inline-form">
@@ -122,10 +125,10 @@
       <div class="form-group" style="flex:2;"><label>Reason</label><input type="text" id="block-reason"></div>
       <button class="btn btn-primary" onclick="addBlockedDate()">Block Date</button>
     </div>
-    <table class="admin-table">
+    <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>Date</th><th>Reason</th><th></th></tr></thead>
       <tbody id="blocked-tbody"></tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- ===================== PAYMENT SETTINGS ===================== -->
@@ -145,6 +148,13 @@
 
       <button class="btn btn-primary" style="align-self:flex-start;" onclick="savePaymentSettings()">Save Payment Settings</button>
     </div>
+
+    <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Session Link</h2></div>
+    <p class="small-note">This link is used automatically for every new booking, until each appointment's own Zoom Link is customized in the Appointments tab.</p>
+    <div class="inline-form" style="flex-direction:column; align-items:stretch; gap:14px;">
+      <div class="form-group"><label>Default Zoom Link (your personal meeting room)</label><input type="text" id="default-zoom-link" placeholder="https://zoom.us/j/..."></div>
+      <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSiteSettings()">Save Session Link</button>
+    </div>
   </div>
 
 </div>
@@ -157,6 +167,7 @@
 <script src="app-config.js"></script>
 <script>
 let editingServiceId = null;
+let allServices = [];
 let invoiceItemCount = 0;
 let enabledPaymentMethods = [];
 
@@ -187,6 +198,7 @@ async function init() {
   loadAvailability();
   loadBlockedDates();
   loadPaymentSettings();
+  loadSiteSettings();
   addInvoiceItemRow();
 }
 
@@ -200,12 +212,18 @@ function switchTab(name) {
 async function loadServices() {
   const res = await fetch(`${API_BASE}/admin/services`, { credentials: "include" });
   const data = await res.json();
+  allServices = data.services;
+
+  const redeemSelect = document.getElementById("svc-redeemable-service");
+  const nonPackageServices = data.services.filter((s) => !s.is_package);
+  redeemSelect.innerHTML = nonPackageServices.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
+
   const tbody = document.getElementById("services-tbody");
   tbody.innerHTML = "";
   data.services.forEach((s) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${s.name}</td>
+      <td>${s.name}${s.is_package ? ` <span class="small-note">(${s.package_size}-session bundle)</span>` : ""}</td>
       <td>${s.duration_minutes} min</td>
       <td>${formatMoney(s.price_cents)}</td>
       <td>${s.active ? "Yes" : "No"}</td>
@@ -219,6 +237,12 @@ async function loadServices() {
   });
 }
 
+function togglePackageFields() {
+  const isPackage = document.getElementById("svc-is-package").checked;
+  document.getElementById("svc-package-size-group").style.display = isPackage ? "block" : "none";
+  document.getElementById("svc-redeem-group").style.display = isPackage ? "block" : "none";
+}
+
 function editService(s) {
   editingServiceId = s.id;
   document.getElementById("svc-name").value = s.name;
@@ -226,6 +250,10 @@ function editService(s) {
   document.getElementById("svc-price").value = (s.price_cents / 100).toFixed(2);
   document.getElementById("svc-active").checked = !!s.active;
   document.getElementById("svc-description").value = s.description || "";
+  document.getElementById("svc-is-package").checked = !!s.is_package;
+  document.getElementById("svc-package-size").value = s.package_size || 4;
+  if (s.redeemable_service_id) document.getElementById("svc-redeemable-service").value = s.redeemable_service_id;
+  togglePackageFields();
   document.getElementById("svc-save-btn").textContent = "Save Changes";
   document.getElementById("svc-cancel-btn").style.display = "inline-block";
 }
@@ -237,11 +265,15 @@ function resetServiceForm() {
   document.getElementById("svc-price").value = "";
   document.getElementById("svc-active").checked = true;
   document.getElementById("svc-description").value = "";
+  document.getElementById("svc-is-package").checked = false;
+  document.getElementById("svc-package-size").value = 4;
+  togglePackageFields();
   document.getElementById("svc-save-btn").textContent = "Add Service";
   document.getElementById("svc-cancel-btn").style.display = "none";
 }
 
 async function saveService() {
+  const isPackage = document.getElementById("svc-is-package").checked;
   const body = {
     name: document.getElementById("svc-name").value.trim(),
     duration_minutes: parseInt(document.getElementById("svc-duration").value, 10),
@@ -249,6 +281,9 @@ async function saveService() {
     active: document.getElementById("svc-active").checked,
     description: document.getElementById("svc-description").value.trim(),
     sort_order: 0,
+    is_package: isPackage,
+    package_size: isPackage ? parseInt(document.getElementById("svc-package-size").value, 10) : null,
+    redeemable_service_id: isPackage ? document.getElementById("svc-redeemable-service").value : null,
   };
   if (!body.name) { alert("Please enter a service name."); return; }
 
@@ -507,6 +542,20 @@ async function loadPaymentSettings() {
   document.getElementById("pay-venmo").checked = !!s.venmo_enabled;
   document.getElementById("zelle-instructions").value = s.zelle_instructions || "";
   document.getElementById("venmo-instructions").value = s.venmo_instructions || "";
+}
+
+async function loadSiteSettings() {
+  const res = await fetch(`${API_BASE}/admin/site-settings`, { credentials: "include" });
+  const data = await res.json();
+  document.getElementById("default-zoom-link").value = data.settings?.default_zoom_link || "";
+}
+
+async function saveSiteSettings() {
+  const body = { default_zoom_link: document.getElementById("default-zoom-link").value.trim() };
+  await fetch(`${API_BASE}/admin/site-settings`, {
+    method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  alert("Session link saved.");
 }
 
 async function savePaymentSettings() {
