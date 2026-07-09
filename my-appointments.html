@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Appointments | Joyfully Present LLC</title>
+<title>My Appointments | Joyfully Present Life Coaching</title>
 <link rel="icon" href="https://joyfullypresent.life/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,450;9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="booking.css">
 </head>
@@ -16,8 +16,8 @@
 <header class="site-header">
   <nav class="nav">
     <a href="index.html" class="brand">
-      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present">
-      <span>Joyfully Present</span>
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present Life Coaching</span>
     </a>
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
@@ -48,8 +48,8 @@
   <div class="wrap">
     <div class="footer-grid">
       <a href="index.html" class="brand">
-        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present">
-        <span>Joyfully Present</span>
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present Life Coaching</span>
       </a>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
@@ -59,7 +59,7 @@
       </ul>
     </div>
     <div class="footer-bottom">
-      <span>&copy; 2026 Joyfully Present LLC</span>
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
       <span>hello@joyfullypresent.life</span>
     </div>
   </div>
@@ -106,6 +106,7 @@ async function init() {
       <div>
         <h3 style="margin-bottom:6px;">${a.service_name}</h3>
         <p style="margin:0;">${when}</p>
+        ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn-small" style="margin-top:8px; display:inline-block;">Join Zoom</a>` : ""}
       </div>
       <div style="text-align:right;">
         <div class="status-pill ${a.status}">${a.status}</div>
