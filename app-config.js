@@ -9,3 +9,4 @@ const PAYPAL_CLIENT_ID = "YOUR_PAYPAL_CLIENT_ID";
 function formatMoney(cents) {
   return "$" + (cents / 100).toFixed(2);
 }
+ 
