@@ -4,10 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invoice | Joyfully Present Life Coaching</title>
-<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="booking.css">
 </head>
@@ -19,11 +22,14 @@
       <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
       <span>Joyfully Present Life Coaching</span>
     </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
       <li><a href="services.html">Services</a></li>
       <li><a href="faq.html">FAQ</a></li>
     </ul>
+    </div>
   </nav>
 </header>
 
@@ -46,7 +52,12 @@
   <div class="wrap">
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
-      <span>hello@joyfullypresent.life</span>
+      <span>
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
     </div>
   </div>
 </footer>
