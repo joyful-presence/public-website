@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About Me | Joyfully Present Life Coaching</title>
 <meta name="description" content="Meet your coach at Joyfully Present. Learn the story and approach behind the practice.">
-<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,6 +22,8 @@
       <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
       <span>Joyfully Present Life Coaching</span>
     </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
     <ul class="nav-links">
       <li><a href="index.html">Home</a></li>
       <li><a href="about.html" aria-current="page">About Me</a></li>
@@ -29,6 +34,7 @@
       <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
       <a href="book.html" class="btn btn-primary">Book a Session</a>
     </div>
+    </div>
   </nav>
 </header>
 
@@ -37,7 +43,7 @@
   <section class="page-hero">
     <div class="wrap">
       <span class="eyebrow">About Me</span>
-      <h1>Hi, I'm Xinmei.</h1>
+      <h1>Hi, I'm [Your Name].</h1>
       <p class="lead">I help people get honest about where they are and build, one deliberate step at a time, toward where they actually want to be.</p>
     </div>
   </section>
@@ -54,6 +60,7 @@
 
         <h2 style="margin-top:40px;">How I work</h2>
         <ul class="credentials">
+          <li>[Certification / training &mdash; e.g. "Certified Life Coach, ICF"]</li>
           <li>[Years of experience or number of clients served]</li>
           <li>[Specialty area &mdash; e.g. career transitions, burnout, life direction]</li>
           <li>[A personal value or philosophy that shapes your sessions]</li>
@@ -69,7 +76,7 @@
   <section class="section-soft">
     <div class="wrap quote-block">
       <blockquote>"My work isn't to fix you. It's to help you hear yourself clearly enough to move."</blockquote>
-      <cite>&mdash; Xinmei </cite>
+      <cite>&mdash; [Your Name]</cite>
     </div>
   </section>
 
@@ -91,7 +98,12 @@
     </div>
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
-      <span>hello@joyfullypresent.life</span>
+      <span>
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
     </div>
   </div>
 </footer>
