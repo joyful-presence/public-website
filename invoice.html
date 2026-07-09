@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice | Joyfully Present Life Coaching</title>
+<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present Life Coaching</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Invoice</span>
+      <h1>Payment details</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow" id="content">
+      <p class="small-note">Loading…</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>hello@joyfullypresent.life</span>
+    </div>
+  </div>
+</footer>
+
+<script src="app-config.js"></script>
+<script>
+const token = new URLSearchParams(location.search).get("token");
+const justPaid = new URLSearchParams(location.search).get("paid");
+const content = document.getElementById("content");
+
+async function init() {
+  if (!token) { content.innerHTML = `<p>Missing invoice link.</p>`; return; }
+
+  const res = await fetch(`${API_BASE}/api/invoice?token=${encodeURIComponent(token)}`);
+  const data = await res.json();
+  if (!res.ok) { content.innerHTML = `<p>${data.error || "Invoice not found."}</p>`; return; }
+
+  const inv = data.invoice;
+  const isPaid = inv.status === "paid" || justPaid === "1";
+
+  let itemsHtml = data.items.map(it => `
+    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">
+      <span>${it.description} ${it.quantity > 1 ? `&times; ${it.quantity}` : ""}</span>
+      <span>${formatMoney(it.quantity * it.unit_price_cents)}</span>
+    </div>`).join("");
+
+  content.innerHTML = `
+    <div class="appt-card" style="display:block;">
+      <p class="small-note">Billed to ${inv.customer_name} (${inv.customer_email})</p>
+      <div style="margin:16px 0;">${itemsHtml}</div>
+      <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; padding-top:8px;">
+        <span>Total</span><span>${formatMoney(inv.amount_cents)}</span>
+      </div>
+      <div style="margin-top:14px;"><span class="status-pill ${isPaid ? "completed" : "pending"}">${isPaid ? "paid" : inv.status}</span></div>
+    </div>
+    <div id="pay-options" style="margin-top:24px;"></div>
+  `;
+
+  if (isPaid) return;
+
+  const methods = (inv.allowed_payment_methods || "").split(",").filter(Boolean);
+  const optionsEl = document.getElementById("pay-options");
+
+  if (methods.includes("stripe")) {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-primary";
+    btn.style.width = "100%";
+    btn.style.marginBottom = "12px";
+    btn.textContent = "Pay with Card";
+    btn.addEventListener("click", async () => {
+      btn.textContent = "Redirecting…";
+      const r = await fetch(`${API_BASE}/api/invoice/${inv.id}/pay/stripe`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }),
+      });
+      const d = await r.json();
+      if (d.url) location.href = d.url; else { btn.textContent = "Pay with Card"; alert(d.error || "Something went wrong."); }
+    });
+    optionsEl.appendChild(btn);
+  }
+
+  if (methods.includes("paypal")) {
+    const div = document.createElement("div");
+    div.id = "paypal-buttons";
+    div.style.marginBottom = "12px";
+    optionsEl.appendChild(div);
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+    script.onload = () => {
+      paypal.Buttons({
+        createOrder: async () => {
+          const r = await fetch(`${API_BASE}/api/invoice/${inv.id}/pay/paypal/create-order`, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }),
+          });
+          const d = await r.json();
+          return d.order_id;
+        },
+        onApprove: async (data) => {
+          await fetch(`${API_BASE}/api/invoice/${inv.id}/pay/paypal/capture-order`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token, order_id: data.orderID }),
+          });
+          location.href = `invoice.html?token=${token}&paid=1`;
+        },
+      }).render("#paypal-buttons");
+    };
+    document.body.appendChild(script);
+  }
+
+  if (methods.includes("zelle") && data.settings.zelle_enabled) {
+    const box = document.createElement("div");
+    box.className = "signed-in-box";
+    box.innerHTML = `<strong>Pay with Zelle:</strong> ${data.settings.zelle_instructions || ""}<br><span class="small-note">Once sent, we'll mark this invoice paid on our end.</span>`;
+    optionsEl.appendChild(box);
+  }
+
+  if (methods.includes("venmo") && data.settings.venmo_enabled) {
+    const box = document.createElement("div");
+    box.className = "signed-in-box";
+    box.innerHTML = `<strong>Pay with Venmo:</strong> ${data.settings.venmo_instructions || ""}<br><span class="small-note">Once sent, we'll mark this invoice paid on our end.</span>`;
+    optionsEl.appendChild(box);
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
