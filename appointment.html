@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Appointment | Joyfully Present Life Coaching</title>
+<link rel="icon" href="https://joyfullypresent.life/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present Life Coaching</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <a href="book.html" class="btn btn-primary">Book a Session</a>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Your Appointment</span>
+      <h1>Booking details</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow" id="content">
+      <p class="small-note">Loading…</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present Life Coaching</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>hello@joyfullypresent.life</span>
+    </div>
+  </div>
+</footer>
+
+<script src="app-config.js"></script>
+<script>
+const token = new URLSearchParams(location.search).get("token");
+const content = document.getElementById("content");
+
+async function init() {
+  if (!token) { content.innerHTML = `<p>Missing appointment link.</p>`; return; }
+
+  const res = await fetch(`${API_BASE}/api/appointment?token=${encodeURIComponent(token)}`);
+  const data = await res.json();
+
+  if (!res.ok) { content.innerHTML = `<p>${data.error || "Appointment not found."}</p>`; return; }
+
+  const a = data.appointment;
+  const when = new Date(a.start_time).toLocaleString("en-US", {
+    timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+
+  content.innerHTML = `
+    <div class="appt-card" style="display:block;">
+      <h3 style="margin-bottom:6px;">${a.service_name}</h3>
+      <p style="margin-bottom:14px;">${when}</p>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <span class="status-pill ${a.status}">${a.status}</span>
+        <span class="pay-pill">${a.payment_status}</span>
+      </div>
+      <p class="small-note">Booked for ${a.customer_name} (${a.email})</p>
+      ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn btn-primary" style="margin-bottom:12px; display:inline-block;">Join Zoom</a><br>` : ""}
+      ${a.status !== "cancelled" ? `<button class="btn-small danger" id="cancel-btn">Cancel appointment</button>` : ""}
+    </div>
+  `;
+
+  const cancelBtn = document.getElementById("cancel-btn");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", async () => {
+      if (!confirm("Cancel this appointment?")) return;
+      await fetch(`${API_BASE}/api/appointments/${a.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      init();
+    });
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
