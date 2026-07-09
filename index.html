@@ -10,6 +10,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Quick helper to ensure the legal links style neatly next to your copyright */
+  .footer-legal-links {
+    margin-top: 8px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .footer-legal-links a {
+    color: inherit;
+    text-decoration: underline;
+    font-size: 0.9em;
+    opacity: 0.8;
+  }
+  .footer-legal-links a:hover {
+    opacity: 1;
+  }
+</style>
 </head>
 <body>
 
@@ -147,6 +166,11 @@
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
       <span>hello@joyfullypresent.life</span>
+      <!-- Google Merchant Center / Ad Verification Links -->
+      <div class="footer-legal-links">
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </div>
     </div>
   </div>
 </footer>
