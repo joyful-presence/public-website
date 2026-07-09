@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Book a Session | Joyfully Present Life Coaching</title>
-<link rel="icon" type="image/png" href="/favicon/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
-<link rel="shortcut icon" href="/favicon/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Joyfully Present" />
-<link rel="manifest" href="/favicon/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,7 +20,7 @@
   <nav class="nav">
     <a href="index.html" class="brand">
       <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-      <span>Joyfully Present Life Coaching</span>
+      <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
     </a>
     <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
     <div class="mobile-menu-panel" id="mobile-menu">
@@ -98,7 +96,7 @@
         </div>
 
         <div class="wizard-actions">
-          <button class="btn btn-ghost" onclick="goToStep(2)">Back</button>
+          <button class="btn btn-ghost" onclick="goToStep(selectedService && selectedService.is_package ? 1 : 2)">Back</button>
           <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
         </div>
       </div>
@@ -123,7 +121,7 @@
     <div class="footer-grid">
       <a href="index.html" class="brand">
         <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-        <span>Joyfully Present Life Coaching</span>
+        <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
       </a>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
@@ -176,7 +174,8 @@ async function loadServices() {
   data.services.forEach((s) => {
     const el = document.createElement("div");
     el.className = "option-card";
-    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min</p></div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
+    const bundleNote = s.is_package ? ` &middot; <strong>${s.package_size}-session bundle</strong>` : "";
+    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min${bundleNote}</p></div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
     el.addEventListener("click", () => selectService(s, el));
     list.appendChild(el);
     if (preselectServiceId === s.id) selectService(s, el);
@@ -187,6 +186,15 @@ function selectService(service, el) {
   selectedService = service;
   document.querySelectorAll("#service-list .option-card").forEach((c) => c.classList.remove("selected"));
   el.classList.add("selected");
+
+  if (service.is_package) {
+    // Bundles aren't tied to a time slot — skip straight to details/payment.
+    selectedSlot = null;
+    goToStep(3);
+    checkSignedIn();
+    return;
+  }
+
   goToStep(2);
   const dateInput = document.getElementById("date-input");
   const today = new Date().toISOString().split("T")[0];
@@ -236,7 +244,20 @@ async function checkSignedIn() {
   if (currentCustomer) {
     document.getElementById("signed-in-view").style.display = "block";
     document.getElementById("guest-view").style.display = "none";
-    document.getElementById("signed-in-box").innerHTML = `Booking as <strong>${currentCustomer.name}</strong> (${currentCustomer.email})`;
+    let boxHtml = `Booking as <strong>${currentCustomer.name}</strong> (${currentCustomer.email})`;
+
+    if (!selectedService.is_package) {
+      const creditsRes = await fetch(`${API_BASE}/api/my-credits`, { credentials: "include" });
+      const creditsData = await creditsRes.json();
+      const match = (creditsData.credits || []).find((c) => c.redeemable_service_id === selectedService.id);
+      if (match && match.remaining > 0) {
+        boxHtml += `<label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
+          <input type="checkbox" id="use-credit-checkbox" style="width:auto;" checked>
+          Use one of my ${match.remaining} available session credits (no charge)
+        </label>`;
+      }
+    }
+    document.getElementById("signed-in-box").innerHTML = boxHtml;
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
@@ -245,7 +266,11 @@ async function checkSignedIn() {
 
 async function submitBooking() {
   showError("");
-  const body = { service_id: selectedService.id, start_time: selectedSlot.start_time };
+  const body = { service_id: selectedService.id };
+  if (selectedSlot) body.start_time = selectedSlot.start_time;
+
+  const creditCheckbox = document.getElementById("use-credit-checkbox");
+  if (creditCheckbox && creditCheckbox.checked) body.use_credit = true;
 
   if (!currentCustomer) {
     const name = document.getElementById("g-name").value.trim();
@@ -265,11 +290,22 @@ async function submitBooking() {
 
   if (!res.ok) { showError(data.error || "Something went wrong — please try again."); return; }
 
-  document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.label}`;
+  if (data.package) {
+    document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.sessions_granted} sessions added to your account`;
+  } else {
+    document.getElementById("confirm-summary").textContent = data.used_credit
+      ? `${data.service_name} — ${data.label} (using a session credit)`
+      : `${data.service_name} — ${data.label}`;
+  }
+
   if (data.guest_token) {
     document.getElementById("confirm-token-note").style.display = "block";
     document.getElementById("confirm-token-note").innerHTML =
       `Bookmark this link to view or cancel your appointment: <br><a href="appointment.html?token=${data.guest_token}">${location.origin}/appointment.html?token=${data.guest_token}</a>`;
+  } else if (data.invoice_token) {
+    document.getElementById("confirm-token-note").style.display = "block";
+    document.getElementById("confirm-token-note").innerHTML =
+      `A confirmation email with your invoice is on its way. You can also <a href="invoice.html?token=${data.invoice_token}">view or pay it here</a>.`;
   }
   goToStep(4);
 }
