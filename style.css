@@ -1,7 +1,7 @@
 /* ==========================================================================
    Joyfully Present LLC — shared styles
    Palette: white base, light blue + green primaries, darker blue for buttons
-   Type: Fraunces (display) + Inter (body)
+   Type: Pinyon Script (logo) + Quicksand (everything else)
    ========================================================================== */
 
 :root {
@@ -24,8 +24,9 @@
   --line: rgba(34, 49, 47, 0.12);
   --white: #FFFFFF;
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Quicksand", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Quicksand", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-logo: "Pinyon Script", cursive;
 
   --radius-lg: 28px;
   --radius-md: 18px;
@@ -151,9 +152,15 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
 }
 
 .brand span {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-family: var(--font-logo);
+  font-size: 1.7rem;
   color: var(--ink);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .nav-links {
@@ -528,7 +535,7 @@ section { padding: 78px 0; }
   margin-bottom: 32px;
 }
 
-.footer-grid .brand span { font-size: 1.05rem; }
+.footer-grid .brand span { font-size: 1.5rem; }
 
 .footer-links {
   display: flex;
