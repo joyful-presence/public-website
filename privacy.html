@@ -1,98 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Life Coaching</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-        .container {
-            background: #fff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        h1 {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-            color: #222;
-        }
-        h2 {
-            margin-top: 30px;
-            color: #444;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-        }
-        p, ul {
-            margin-bottom: 1.5em;
-        }
-        .last-updated {
-            font-style: italic;
-            color: #666;
-        }
-        .footer-link {
-            margin-top: 40px;
-            display: block;
-            color: #0066cc;
-            text-decoration: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy | Joyfully Present Life Coaching</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+<style>
+  .legal { max-width: 760px; margin: 0 auto; }
+  .legal h2 { margin-top: 2.2em; font-size: 1.3rem; }
+  .legal p, .legal li { color: var(--ink-soft); line-height: 1.7; }
+  .legal ul { padding-left: 1.3em; }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Privacy Policy</h1>
-    <p class="last-updated">Last Updated: July 9, 2026</p>
-
-    <p>Your privacy is deeply important to us. This Privacy Policy outlines how we collect, use, and protect your personal data when you interact with our website and coaching services.</p>
-
-    <h2>1. Information We Collect</h2>
-    <p>We may collect personal information that you voluntarily provide to us, including but not limited to:</p>
-    <ul>
-        <li>Your name, email address, and phone number.</li>
-        <li>Information provided in intake forms, questionnaires, or emails.</li>
-        <li>Billing and payment details (processed securely via third-party providers).</li>
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present Life Coaching</span>
+    </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
     </ul>
+    <div class="nav-actions">
+      <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+      <a href="book.html" class="btn btn-primary">Book a Session</a>
+    </div>
+    </div>
+  </nav>
+</header>
 
-    <h2>2. How We Use Your Information</h2>
-    <p>We use your information strictly to:</p>
-    <ul>
-        <li>Deliver and manage your coaching sessions.</li>
-        <li>Process payments and issue invoices.</li>
-        <li>Send necessary service updates, scheduling reminders, or optional newsletters.</li>
-    </ul>
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Legal</span>
+      <h1>Privacy Policy</h1>
+      <p class="lead">Last updated: July 2026</p>
+    </div>
+  </section>
 
-    <h2>3. Confidentiality</h2>
-    <p>We strictly protect the confidentiality of your coaching sessions and personal data. We will not sell, rent, or share your information with third parties, except:</p>
-    <ul>
-        <li>With your explicit written consent.</li>
-        <li>To comply with a legal obligation, court order, or to prevent imminent harm to yourself or others.</li>
-        <li>With trusted third-party service providers (like scheduling tools or payment processors) who help run our business under strict privacy terms.</li>
-    </ul>
+  <section>
+    <div class="wrap legal">
+      <p>Joyfully Present Life Coaching LLC ("we," "us," "our") respects your privacy. This policy explains what information we collect, how we use it, and the choices you have.</p>
 
-    <h2>4. Data Security</h2>
-    <p>We implement industry-standard security measures to protect your data from unauthorized access, loss, or misuse. However, no electronic transmission over the internet can be guaranteed 100% secure.</p>
+      <h2>1. Information We Collect</h2>
+      <ul>
+        <li><strong>Contact details</strong> you give us when booking: name, email, and phone number.</li>
+        <li><strong>Account information</strong> if you sign in with Google or create an account with us — your name and email.</li>
+        <li><strong>Booking and session details</strong>: appointment times, the service or package booked, and session status.</li>
+        <li><strong>Payment information</strong>: when you pay by card or PayPal, your payment details are handled directly by Stripe or PayPal — we never see or store your full card number. For Zelle/Venmo we only see what you choose to send us directly through those apps.</li>
+      </ul>
 
-    <h2>5. Your Rights</h2>
-    <p>Depending on your location, you may have the right to access, update, correct, or request the deletion of the personal data we hold about you. To exercise these rights, please contact us.</p>
+      <h2>2. How We Use Your Information</h2>
+      <p>We use your information to schedule and manage appointments, send booking confirmations and invoices, provide your session link, respond to questions, and maintain our business records as required by law.</p>
 
-    <h2>6. Contact Us</h2>
-    <p>
-        <strong>Joyfully Present Life Coach LLC </strong><br>
-        Email: hello@joyfullypresent.life<br>
-        Website: joyfullypresent.life
-    </p>
+      <h2>3. Cookies &amp; Sessions</h2>
+      <p>We use a small number of essential cookies to keep you signed in — for example, after signing in with Google or our own account system, or when you're logged into the admin portal. We don't use advertising or tracking cookies.</p>
 
-    <a href="terms.html" class="footer-link">&larr; View Terms of Service</a>
-</div>
+      <h2>4. Third-Party Service Providers</h2>
+      <p>We share information with trusted service providers only as needed to run our business:</p>
+      <ul>
+        <li><strong>Stripe</strong> and <strong>PayPal</strong> — payment processing</li>
+        <li><strong>Google</strong> — optional sign-in</li>
+        <li><strong>Resend</strong> — sending booking confirmations and invoice emails</li>
+        <li><strong>Cloudflare</strong> — website hosting and infrastructure</li>
+        <li><strong>BetterStack</strong> — uptime monitoring for our systems</li>
+      </ul>
+      <p>These providers only receive what they need to perform their function and are not permitted to use your information for their own purposes.</p>
+
+      <h2>5. Data Retention</h2>
+      <p>We keep booking and payment records for as long as needed to run our business and meet legal/tax obligations, and delete or anonymize information we no longer need.</p>
+
+      <h2>6. Your Rights</h2>
+      <p>You can ask us to access, correct, or delete your personal information at any time by emailing <a href="mailto:hello@joyfullypresent.life">hello@joyfullypresent.life</a>. If you're a California resident, you may have additional rights under the California Consumer Privacy Act (CCPA); contact us to make a request.</p>
+
+      <h2>7. Children's Privacy</h2>
+      <p>Our services are intended for adults 18 and older. We do not knowingly collect information from children.</p>
+
+      <h2>8. Security</h2>
+      <p>We take reasonable technical measures to protect your information, including encrypted connections and access controls on our systems. No method of transmission or storage is 100% secure, but we work to protect your data appropriately for a business of our size.</p>
+
+      <h2>9. Changes to This Policy</h2>
+      <p>We may update this policy occasionally. The "last updated" date at the top will reflect the most recent changes.</p>
+
+      <h2>10. Contact Us</h2>
+      <p>Questions about this policy? Reach us at <a href="mailto:hello@joyfullypresent.life">hello@joyfullypresent.life</a> or 440 N Barranca Ave #9885, Covina, CA 91723.</p>
+
+      <p style="margin-top:2.5em; font-size:0.85rem;"><em>This page is a general template provided for convenience and does not constitute legal advice. We recommend having this policy reviewed by a licensed attorney to ensure it fits your specific business and complies with applicable law (including CCPA if it applies to you).</em></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present Life Coaching</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
+    </div>
+  </div>
+</footer>
 
 </body>
 </html>
