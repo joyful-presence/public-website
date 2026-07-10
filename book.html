@@ -188,7 +188,6 @@ function selectService(service, el) {
   el.classList.add("selected");
 
   if (service.is_package) {
-    // Bundles aren't tied to a time slot — skip straight to details/payment.
     selectedSlot = null;
     goToStep(3);
     checkSignedIn();
@@ -204,8 +203,6 @@ function selectService(service, el) {
 }
 
 // ---------- Step 2: date + time ----------
-document.getElementById("date-input").addEventListener("change", loadSlots);
-
 async function loadSlots() {
   const date = document.getElementById("date-input").value;
   if (!date || !selectedService) return;
@@ -238,9 +235,11 @@ async function checkSignedIn() {
   const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const data = await res.json();
   currentCustomer = data.customer;
+  
   const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
+  
   document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
-  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+  
   if (currentCustomer) {
     document.getElementById("signed-in-view").style.display = "block";
     document.getElementById("guest-view").style.display = "none";
@@ -261,6 +260,18 @@ async function checkSignedIn() {
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
+
+    // Rebind the button event listener cleanly
+    const oldBtn = document.getElementById("sso-signin-btn");
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+
+    // ✅ FIXED: Native routing assignment bypasses CORS fetch blockades
+    newBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+      window.location.href = targetUrl;
+    });
   }
 }
 
@@ -310,12 +321,19 @@ async function submitBooking() {
   goToStep(4);
 }
 
-loadServices();
-
-// If arriving back from Google sign-in with a service pre-selected, jump to step 3 once loaded.
-if (preselectServiceId) {
-  checkSignedIn();
+function formatMoney(cents) {
+  return '$' + (cents / 100).toFixed(2);
 }
+
+// 🌟 FIXED TIMING TETHER: Wait for HTML elements to load before executing assignments
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("date-input").addEventListener("change", loadSlots);
+  loadServices();
+
+  if (preselectServiceId) {
+    checkSignedIn();
+  }
+});
 </script>
 
 </body>
