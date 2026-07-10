@@ -65,7 +65,7 @@
   <div class="tab-panel" id="tab-appointments">
     <div class="section-title-row"><h2 style="margin:0;">Appointments</h2></div>
     <div class="table-scroll"><table class="admin-table">
-      <thead><tr><th>When</th><th>Service</th><th>Customer</th><th>Status</th><th>Payment</th><th>Zoom Link</th></tr></thead>
+      <thead><tr><th>When</th><th>Service</th><th>Customer</th><th>Status</th><th>Payment</th><th>Zoom Link</th><th></th></tr></thead>
       <tbody id="appointments-tbody"></tbody>
     </table></div>
   </div>
@@ -337,8 +337,17 @@ async function loadAppointments() {
           <input type="text" placeholder="https://zoom.us/j/..." value="${a.meeting_link || ""}" data-link-input="${a.id}" style="width:160px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:0.82rem;">
           <button class="btn-small" data-link-save="${a.id}">Save</button>
         </div>
-      </td>`;
+      </td>
+      <td><button class="btn-small danger" data-delete-appt="${a.id}">Delete</button></td>`;
     tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-delete-appt]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Permanently delete this appointment? This can't be undone.")) return;
+      await fetch(`${API_BASE}/admin/appointments/${btn.dataset.deleteAppt}`, { method: "DELETE", credentials: "include" });
+      loadAppointments();
+    });
   });
 
   tbody.querySelectorAll("[data-status]").forEach((sel) => {
@@ -458,7 +467,10 @@ async function loadInvoices() {
       <td>${formatMoney(inv.amount_cents)}</td>
       <td>${inv.status}</td>
       <td>${(inv.allowed_payment_methods || "").split(",").filter(Boolean).join(", ") || "—"}</td>
-      <td>${inv.status !== "paid" ? `<button class="btn-small" data-mark-paid="${inv.id}">Mark Paid</button>` : ""}</td>`;
+      <td style="display:flex; gap:6px;">
+        ${inv.status !== "paid" ? `<button class="btn-small" data-mark-paid="${inv.id}">Mark Paid</button>` : ""}
+        <button class="btn-small danger" data-delete-inv="${inv.id}">Delete</button>
+      </td>`;
     tbody.appendChild(tr);
     const btn = tr.querySelector("[data-mark-paid]");
     if (btn) btn.addEventListener("click", async () => {
@@ -466,6 +478,11 @@ async function loadInvoices() {
         method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "paid" }),
       });
+      loadInvoices();
+    });
+    tr.querySelector("[data-delete-inv]").addEventListener("click", async () => {
+      if (!confirm("Permanently delete this invoice? This can't be undone.")) return;
+      await fetch(`${API_BASE}/admin/invoices/${inv.id}`, { method: "DELETE", credentials: "include" });
       loadInvoices();
     });
   });
