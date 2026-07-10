@@ -1,3 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session | Joyfully Present Life Coaching</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+    </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Book a Session</span>
+      <h1>Let's find a time</h1>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+
+      <div class="steps">
+        <div class="step-dot active" id="dot-1"><span class="num">1</span>Service</div>
+        <div class="step-dot" id="dot-2"><span class="num">2</span>Time</div>
+        <div class="step-dot" id="dot-3"><span class="num">3</span>Details</div>
+        <div class="step-dot" id="dot-4"><span class="num">4</span>Confirm</div>
+      </div>
+
+      <div id="error-box"></div>
+
+      <!-- Step 1: service -->
+      <div class="step-panel" id="step-1">
+        <div class="option-list" id="service-list">
+          <p class="small-note">Loading services…</p>
+        </div>
+      </div>
+
+      <!-- Step 2: date + time -->
+      <div class="step-panel" id="step-2" style="display:none;">
+        <input type="date" class="date-input" id="date-input">
+        <div class="slot-grid" id="slot-grid"></div>
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(1)">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 3: details -->
+      <div class="step-panel" id="step-3" style="display:none;">
+        <div id="signed-in-view" style="display:none;">
+          <div class="signed-in-box" id="signed-in-box"></div>
+        </div>
+
+        <div id="guest-view">
+          <a class="google-btn" id="google-signin-btn" href="#">Continue with Google</a>
+          <a class="google-btn" id="sso-signin-btn" href="#" style="margin-top:10px;">Sign In / Create Account</a>
+          <div class="divider-or">or enter your details</div>
+          <div class="form-group">
+            <label for="g-name">Full name</label>
+            <input type="text" id="g-name" required>
+          </div>
+          <div class="form-group">
+            <label for="g-email">Email</label>
+            <input type="email" id="g-email" required>
+          </div>
+          <div class="form-group">
+            <label for="g-phone">Phone (optional)</label>
+            <input type="tel" id="g-phone">
+          </div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(selectedService && selectedService.is_package ? 1 : 2)">Back</button>
+          <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+      </div>
+
+      <!-- Step 4: confirmation -->
+      <div class="step-panel" id="step-4" style="display:none;">
+        <div class="success-box">
+          <div class="check">&#10003;</div>
+          <h2>You're booked</h2>
+          <p id="confirm-summary"></p>
+          <p id="confirm-token-note" class="small-note" style="display:none;"></p>
+          <a href="index.html" class="btn btn-primary" style="margin-top:10px;">Back to Home</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
+    </div>
+  </div>
+</footer>
+
 <script src="app-config.js"></script>
 <script>
 let selectedService = null;
@@ -44,6 +188,7 @@ function selectService(service, el) {
   el.classList.add("selected");
 
   if (service.is_package) {
+    // Bundles aren't tied to a time slot — skip straight to details/payment.
     selectedSlot = null;
     goToStep(3);
     checkSignedIn();
@@ -93,11 +238,9 @@ async function checkSignedIn() {
   const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const data = await res.json();
   currentCustomer = data.customer;
-  
   const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
-  
   document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
-  
+  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
   if (currentCustomer) {
     document.getElementById("signed-in-view").style.display = "block";
     document.getElementById("guest-view").style.display = "none";
@@ -118,17 +261,6 @@ async function checkSignedIn() {
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
-
-    const oldBtn = document.getElementById("sso-signin-btn");
-    const newBtn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-
-    // ✅ FIXED: Direct browser native routing logic to eliminate fetch CORS errors completely
-    newBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
-      window.location.href = targetUrl;
-    });
   }
 }
 
@@ -178,13 +310,9 @@ async function submitBooking() {
   goToStep(4);
 }
 
-// Helpers
-function formatMoney(cents) {
-  return '$' + (cents / 100).toFixed(2);
-}
-
 loadServices();
 
+// If arriving back from Google sign-in with a service pre-selected, jump to step 3 once loaded.
 if (preselectServiceId) {
   checkSignedIn();
 }
