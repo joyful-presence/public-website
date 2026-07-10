@@ -79,7 +79,7 @@
 
         <div id="guest-view">
           <a class="google-btn" id="google-signin-btn" href="#">Continue with Google</a>
-          <a class="google-btn" id="sso-signin-btn" href="#" style="margin-top:10px;">Sign In / Create Account</a>
+<button class="google-btn" id="sso-signin-btn" style="margin-top:10px; width:100%; cursor:pointer;">Sign In / Create Account</button>
           <div class="divider-or">or enter your details</div>
           <div class="form-group">
             <label for="g-name">Full name</label>
@@ -238,9 +238,12 @@ async function checkSignedIn() {
   const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const data = await res.json();
   currentCustomer = data.customer;
+  
   const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
+  
+  // 1. Google can keep its standard window navigation link
   document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
-  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+  
   if (currentCustomer) {
     document.getElementById("signed-in-view").style.display = "block";
     document.getElementById("guest-view").style.display = "none";
@@ -261,6 +264,26 @@ async function checkSignedIn() {
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
+
+    // 2. Clear old click listeners by cloning, then attach the clean data packet fetch interceptor
+    const oldBtn = document.getElementById("sso-signin-btn");
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+
+    newBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+        const ssoRes = await fetch(targetUrl, { credentials: "include" });
+        const ssoData = await ssoRes.json();
+        
+        if (ssoData.redirect && ssoData.url) {
+          window.location.href = ssoData.url; // Transitions cleanly to the login screen!
+        }
+      } catch (err) {
+        console.error("SSO step failure:", err);
+      }
+    });
   }
 }
 
