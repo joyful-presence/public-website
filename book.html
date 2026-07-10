@@ -20,7 +20,7 @@
   <nav class="nav">
     <a href="index.html" class="brand">
       <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-      <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+      <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
     </a>
     <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
     <div class="mobile-menu-panel" id="mobile-menu">
@@ -79,7 +79,7 @@
 
         <div id="guest-view">
           <a class="google-btn" id="google-signin-btn" href="#">Continue with Google</a>
-         <button class="google-btn" id="sso-signin-btn" style="margin-top:10px; width:100%; cursor:pointer;">Sign In / Create Account</button>
+          <a class="google-btn" id="sso-signin-btn" href="#" style="margin-top:10px;">Sign In / Create Account</a>
           <div class="divider-or">or enter your details</div>
           <div class="form-group">
             <label for="g-name">Full name</label>
@@ -121,7 +121,7 @@
     <div class="footer-grid">
       <a href="index.html" class="brand">
         <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-        <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+        <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
       </a>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
@@ -188,6 +188,7 @@ function selectService(service, el) {
   el.classList.add("selected");
 
   if (service.is_package) {
+    // Bundles aren't tied to a time slot — skip straight to details/payment.
     selectedSlot = null;
     goToStep(3);
     checkSignedIn();
@@ -203,6 +204,8 @@ function selectService(service, el) {
 }
 
 // ---------- Step 2: date + time ----------
+document.getElementById("date-input").addEventListener("change", loadSlots);
+
 async function loadSlots() {
   const date = document.getElementById("date-input").value;
   if (!date || !selectedService) return;
@@ -235,11 +238,9 @@ async function checkSignedIn() {
   const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const data = await res.json();
   currentCustomer = data.customer;
-  
   const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
-  
   document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
-  
+  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
   if (currentCustomer) {
     document.getElementById("signed-in-view").style.display = "block";
     document.getElementById("guest-view").style.display = "none";
@@ -260,18 +261,6 @@ async function checkSignedIn() {
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
-
-    // Rebind the button event listener cleanly
-    const oldBtn = document.getElementById("sso-signin-btn");
-    const newBtn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-
-    // ✅ FIXED: Native routing assignment bypasses CORS fetch blockades
-    newBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
-      window.location.href = targetUrl;
-    });
   }
 }
 
@@ -321,30 +310,19 @@ async function submitBooking() {
   goToStep(4);
 }
 
-function formatMoney(cents) {
-  return '$' + (cents / 100).toFixed(2);
+// Safety net: if an sso_ticket ever lands directly on this page instead of
+// being resolved server-side, forward it to finish the exchange.
+const incomingTicket = new URLSearchParams(location.search).get("sso_ticket");
+if (incomingTicket) {
+  location.href = `${API_BASE}/auth/sso/callback?sso_ticket=${incomingTicket}`;
+} else {
+  loadServices();
 }
 
-// 🌟 FIXED TIMING TETHER: Added logic to catch and process SSO tickets
-document.addEventListener("DOMContentLoaded", async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const ssoTicket = urlParams.get("sso_ticket");
-
-  // ✅ 1. THE TICKET CATCHER: If we just returned from SSO, send to callback
-  if (ssoTicket) {
-    window.location.href = `${API_BASE}/auth/sso/callback?sso_ticket=${ssoTicket}`;
-    return; // Don't load the form, we are in the middle of a handshake
-  }
-
-  // ✅ 2. NORMAL FLOW: Load as usual
-  document.getElementById("date-input").addEventListener("change", loadSlots);
-  await loadServices();
-
-  if (preselectServiceId) {
-    // Only auto-select if we aren't mid-auth
-    checkSignedIn();
-  }
-});
+// If arriving back from Google sign-in with a service pre-selected, jump to step 3 once loaded.
+if (preselectServiceId) {
+  checkSignedIn();
+}
 </script>
 
 </body>
