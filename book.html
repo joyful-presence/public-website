@@ -270,23 +270,14 @@ async function checkSignedIn() {
     const newBtn = oldBtn.cloneNode(true);
     oldBtn.parentNode.replaceChild(newBtn, oldBtn);
 
-    newBtn.addEventListener("click", async (e) => {
-      e.preventDefault();
-      try {
-        const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
-        const ssoRes = await fetch(targetUrl, { credentials: "include" });
-        const ssoData = await ssoRes.json();
-        
-        if (ssoData.redirect && ssoData.url) {
-          window.location.href = ssoData.url; // Transitions cleanly to the login screen!
-        }
-      } catch (err) {
-        console.error("SSO step failure:", err);
-      }
-    });
-  }
-}
-
+    // Change the "newBtn.addEventListener" block in book.html to this:
+newBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  // Bypass fetch completely! Let the browser handle the URL redirect directly.
+  const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+  window.location.href = targetUrl;
+});
+    
 async function submitBooking() {
   showError("");
   const body = { service_id: selectedService.id };
