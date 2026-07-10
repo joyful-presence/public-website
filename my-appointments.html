@@ -20,7 +20,7 @@
   <nav class="nav">
     <a href="index.html" class="brand">
       <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-      <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+      <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
     </a>
     <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
     <div class="mobile-menu-panel" id="mobile-menu">
@@ -55,7 +55,7 @@
     <div class="footer-grid">
       <a href="index.html" class="brand">
         <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
-        <span>Joyfully Present<br class="brand-linebreak">Life Coaching</span>
+        <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
       </a>
       <ul class="footer-links">
         <li><a href="index.html">Home</a></li>
@@ -79,39 +79,17 @@
 <script src="app-config.js"></script>
 <script>
 async function init() {
-  const content = document.getElementById("content");
-
-  // ✅ 1. THE TICKET CATCHER: Check if we just arrived from the SSO server
-  const urlParams = new URLSearchParams(window.location.search);
-  const ssoTicket = urlParams.get("sso_ticket");
-
-  if (ssoTicket) {
-    content.innerHTML = `<p class="small-note">Verifying secure sign-in...</p>`;
-    // Send the ticket to the backend to get our session cookie!
-    window.location.href = `${API_BASE}/auth/sso/callback?sso_ticket=${ssoTicket}`;
-    return; // Stop running the rest of the script until the backend bounces us back
-  }
-
-  // ✅ 2. STANDARD LOAD: Check if we are already logged in
   const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const me = await meRes.json();
+  const content = document.getElementById("content");
 
   if (!me.customer) {
     content.innerHTML = `
       <p>Sign in with Google to see your appointments here.</p>
       <a class="google-btn" href="${API_BASE}/auth/google/start?return_to=${encodeURIComponent("/my-appointments.html")}">Continue with Google</a>
-       
-      <button class="google-btn" style="margin-top:10px; width:100%; cursor:pointer;" id="sso-login-btn">Sign In / Create Account</button>
-       
+      <a class="google-btn" style="margin-top:10px;" href="${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}">Sign In / Create Account</a>
       <p class="small-note" style="margin-top:20px;">Booked as a guest? Use the link we gave you at checkout to view that appointment instead.</p>
     `;
-
-    document.getElementById("sso-login-btn").addEventListener("click", (e) => {
-      e.preventDefault();
-      const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}`;
-      window.location.href = targetUrl;
-    });
-
     return;
   }
 
@@ -121,7 +99,14 @@ async function init() {
   const data = await apptRes.json();
 
   if (!data.appointments || !data.appointments.length) {
-    content.innerHTML = `<p>No appointments yet.</p><a href="book.html" class="btn btn-primary">Book a Session</a>`;
+    content.innerHTML = `<p>No appointments yet.</p>
+      <a href="book.html" class="btn btn-primary">Book a Session</a>
+      <p style="margin-top:24px;"><a href="#" id="logout-link" class="small-note">Sign out</a></p>`;
+    document.getElementById("logout-link").addEventListener("click", async (e) => {
+      e.preventDefault();
+      await fetch(`${API_BASE}/auth/logout`, { credentials: "include" });
+      init();
+    });
     return;
   }
 
@@ -167,7 +152,12 @@ async function init() {
   });
 }
 
-init();
+const incomingTicket = new URLSearchParams(location.search).get("sso_ticket");
+if (incomingTicket) {
+  location.href = `${API_BASE}/auth/sso/callback?sso_ticket=${incomingTicket}`;
+} else {
+  init();
+}
 </script>
 
 </body>
