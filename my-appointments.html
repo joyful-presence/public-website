@@ -92,6 +92,15 @@ async function init() {
       
       <p class="small-note" style="margin-top:20px;">Booked as a guest? Use the link we gave you at checkout to view that appointment instead.</p>
     `;
+
+    // ✅ ATTACH IT DIRECTLY HERE: Right after the HTML is written to the DOM!
+    document.getElementById("sso-login-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}`;
+      console.log("Redirecting directly to:", targetUrl); // Track this in F12 console
+      window.location.href = targetUrl;
+    });
+
     return;
   }
 
@@ -146,15 +155,6 @@ async function init() {
     init();
   });
 }
-
-// 🔴 THE CHANGED FIX: Direct browser window routing to bypass fetch CORS traps completely
-document.getElementById("content").addEventListener("click", (e) => {
-  if (e.target && e.target.id === "sso-login-btn") {
-    e.preventDefault();
-    const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}`;
-    window.location.href = targetUrl;
-  }
-});
 
 init();
 </script>
