@@ -87,9 +87,28 @@ async function init() {
     content.innerHTML = `
       <p>Sign in with Google to see your appointments here.</p>
       <a class="google-btn" href="${API_BASE}/auth/google/start?return_to=${encodeURIComponent("/my-appointments.html")}">Continue with Google</a>
-      <a class="google-btn" style="margin-top:10px;" href="${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}">Sign In / Create Account</a>
+      
+      <button class="google-btn" style="margin-top:10px; width:100%; cursor:pointer;" id="sso-login-btn">Sign In / Create Account</button>
+      
       <p class="small-note" style="margin-top:20px;">Booked as a guest? Use the link we gave you at checkout to view that appointment instead.</p>
     `;
+
+    // 🔴 ADDED: Intercept the click, fetch the JSON data packet, and route via JavaScript
+    document.getElementById("sso-login-btn").addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const targetUrl = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/my-appointments.html")}`;
+        const res = await fetch(targetUrl, { credentials: "include" });
+        const data = await res.json();
+        
+        if (data.redirect && data.url) {
+          window.location.href = data.url; // Slides seamlessly over to login.html instead of dumping text!
+        }
+      } catch (err) {
+        console.error("SSO initialization failed:", err);
+      }
+    });
+
     return;
   }
 
