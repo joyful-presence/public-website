@@ -692,7 +692,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 #booking-announcement a {
-  color: #f1c40f; /* A soft yellow/gold to make the email link pop */
+  color: #000000; /* A soft yellow/gold to make the email link pop */
   font-weight: bold;
   text-decoration: none;
 }
