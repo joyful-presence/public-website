@@ -78,6 +78,9 @@
 
 <script src="app-config.js"></script>
 <script>
+let allAppointments = [];
+let currentFilter = "upcoming";
+
 async function init() {
   const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
   const me = await meRes.json();
@@ -97,24 +100,70 @@ async function init() {
 
   const apptRes = await fetch(`${API_BASE}/api/my-appointments`, { credentials: "include" });
   const data = await apptRes.json();
+  allAppointments = data.appointments || [];
 
-  if (!data.appointments || !data.appointments.length) {
-    content.innerHTML = `<p>No appointments yet.</p>
-      <a href="book.html" class="btn btn-primary">Book a Session</a>
-      <p style="margin-top:24px;"><a href="#" id="logout-link" class="small-note">Sign out</a></p>`;
-    document.getElementById("logout-link").addEventListener("click", async (e) => {
-      e.preventDefault();
-      await fetch(`${API_BASE}/auth/logout`, { credentials: "include" });
-      init();
+  content.innerHTML = `
+    <div class="tabs" id="filter-tabs">
+      <button class="tab-btn" data-filter="upcoming">Upcoming</button>
+      <button class="tab-btn" data-filter="past">Past</button>
+      <button class="tab-btn" data-filter="cancelled">Cancelled</button>
+      <button class="tab-btn" data-filter="all">All</button>
+    </div>
+    <div class="appt-list" id="appt-list"></div>
+    <p style="margin-top:24px;"><a href="#" id="logout-link" class="small-note">Sign out</a></p>
+  `;
+
+  document.querySelectorAll("#filter-tabs .tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      currentFilter = btn.dataset.filter;
+      renderList();
     });
+  });
+
+  document.getElementById("logout-link").addEventListener("click", async (e) => {
+    e.preventDefault();
+    await fetch(`${API_BASE}/auth/logout`, { credentials: "include" });
+    init();
+  });
+
+  renderList();
+}
+
+function renderList() {
+  document.querySelectorAll("#filter-tabs .tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.filter === currentFilter);
+  });
+
+  const now = Date.now();
+  let filtered = allAppointments.filter((a) => {
+    const isUpcoming = a.status !== "cancelled" && new Date(a.start_time).getTime() > now;
+    if (currentFilter === "upcoming") return isUpcoming;
+    if (currentFilter === "past") return a.status !== "cancelled" && !isUpcoming;
+    if (currentFilter === "cancelled") return a.status === "cancelled";
+    return true; // "all"
+  });
+
+  // Soonest-first for what's coming up; most-recent-first everywhere else.
+  filtered.sort((a, b) => {
+    const diff = new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+    return currentFilter === "upcoming" ? diff : -diff;
+  });
+
+  const list = document.getElementById("appt-list");
+  list.innerHTML = "";
+
+  if (!filtered.length) {
+    const emptyMessages = {
+      upcoming: "No upcoming appointments.",
+      past: "No past appointments yet.",
+      cancelled: "No cancelled appointments.",
+      all: "No appointments yet.",
+    };
+    list.innerHTML = `<p class="small-note">${emptyMessages[currentFilter]}</p>${currentFilter === "upcoming" ? `<a href="book.html" class="btn btn-primary" style="margin-top:10px;">Book a Session</a>` : ""}`;
     return;
   }
 
-  content.innerHTML = `<div class="appt-list" id="appt-list"></div>
-    <p style="margin-top:24px;"><a href="#" id="logout-link" class="small-note">Sign out</a></p>`;
-
-  const list = document.getElementById("appt-list");
-  data.appointments.forEach((a) => {
+  filtered.forEach((a) => {
     const when = new Date(a.start_time).toLocaleString("en-US", {
       timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
     });
@@ -124,7 +173,7 @@ async function init() {
       <div>
         <h3 style="margin-bottom:6px;">${a.service_name}</h3>
         <p style="margin:0;">${when}</p>
-        ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn-small" style="margin-top:8px; display:inline-block;">Join Zoom</a>` : ""}
+        ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn-small" style="margin-top:8px; display:inline-block;">Join Zoom</a><div class="small-note" style="margin-top:4px;">Passcode: Joyfully</div>` : ""}
       </div>
       <div style="text-align:right;">
         <div class="status-pill ${a.status}">${a.status}</div>
@@ -143,12 +192,6 @@ async function init() {
       });
       init();
     });
-  });
-
-  document.getElementById("logout-link").addEventListener("click", async (e) => {
-    e.preventDefault();
-    await fetch(`${API_BASE}/auth/logout`, { credentials: "include" });
-    init();
   });
 }
 
