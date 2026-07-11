@@ -13,6 +13,70 @@
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="booking.css">
+<style>
+  .invoice-paper {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(34, 49, 47, 0.10);
+    padding: 48px 44px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .invoice-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  .invoice-top h1 {
+    font-size: 2.4rem;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .invoice-brand { text-align: right; }
+  .invoice-brand img { height: 52px; margin-bottom: 8px; margin-left: auto; }
+  .invoice-brand .name { font-family: var(--font-logo); font-size: 1.3rem; color: #26D07C; line-height: 1.1; }
+  .invoice-brand .name .tagline { display: block; font-family: var(--font-body); font-size: 0.5em; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+  .invoice-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .invoice-meta .label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+  .invoice-meta .meta-right { text-align: right; }
+  .invoice-meta .meta-right div { margin-bottom: 4px; font-size: 0.92rem; }
+  .invoice-status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 28px;
+  }
+  .invoice-status-badge.is-paid { background: var(--teal-pale); color: var(--teal-deep); }
+  .invoice-status-badge.is-due { background: #FBF0DE; color: #A8721E; }
+  table.invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  table.invoice-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.invoice-table th:not(:first-child), table.invoice-table td:not(:first-child) { text-align: right; }
+  table.invoice-table td { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+  .invoice-total-row { display: flex; justify-content: flex-end; gap: 24px; padding-top: 6px; margin-bottom: 36px; }
+  .invoice-total-row .label { font-weight: 700; }
+  .invoice-total-row .amount { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; }
+  .invoice-section-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+</style>
 </head>
 <body>
 
@@ -34,16 +98,9 @@
 </header>
 
 <main>
-  <section class="page-hero">
-    <div class="wrap">
-      <span class="eyebrow">Invoice</span>
-      <h1>Payment details</h1>
-    </div>
-  </section>
-
   <section>
-    <div class="wrap narrow" id="content">
-      <p class="small-note">Loading…</p>
+    <div class="wrap" id="content" style="padding-top:48px;">
+      <p class="small-note" style="text-align:center;">Loading…</p>
     </div>
   </section>
 </main>
@@ -68,38 +125,82 @@ const token = new URLSearchParams(location.search).get("token");
 const justPaid = new URLSearchParams(location.search).get("paid");
 const content = document.getElementById("content");
 
+function fmtDate(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric" });
+}
+
 async function init() {
-  if (!token) { content.innerHTML = `<p>Missing invoice link.</p>`; return; }
+  if (!token) { content.innerHTML = `<p style="text-align:center;">Missing invoice link.</p>`; return; }
 
   const res = await fetch(`${API_BASE}/api/invoice?token=${encodeURIComponent(token)}`);
   const data = await res.json();
-  if (!res.ok) { content.innerHTML = `<p>${data.error || "Invoice not found."}</p>`; return; }
+  if (!res.ok) { content.innerHTML = `<p style="text-align:center;">${data.error || "Invoice not found."}</p>`; return; }
 
   const inv = data.invoice;
   const isPaid = inv.status === "paid" || justPaid === "1";
+  const invoiceNumber = inv.id.slice(0, 8).toUpperCase();
 
-  let itemsHtml = data.items.map(it => `
-    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">
-      <span>${it.description} ${it.quantity > 1 ? `&times; ${it.quantity}` : ""}</span>
-      <span>${formatMoney(it.quantity * it.unit_price_cents)}</span>
-    </div>`).join("");
+  const itemsHtml = data.items.map((it) => `
+    <tr>
+      <td>${it.description}</td>
+      <td>${it.quantity}</td>
+      <td>${formatMoney(it.unit_price_cents)}</td>
+      <td>${formatMoney(it.quantity * it.unit_price_cents)}</td>
+    </tr>`).join("");
 
   content.innerHTML = `
-    <div class="appt-card" style="display:block;">
-      <p class="small-note">Billed to ${inv.customer_name} (${inv.customer_email})</p>
-      <div style="margin:16px 0;">${itemsHtml}</div>
-      <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; padding-top:8px;">
-        <span>Total</span><span>${formatMoney(inv.amount_cents)}</span>
+    <div class="invoice-paper">
+      <div class="invoice-top">
+        <h1>Invoice</h1>
+        <div class="invoice-brand">
+          <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+          <div class="name">Joyfully Present<span class="tagline">Life Coaching</span></div>
+        </div>
       </div>
-      <div style="margin-top:14px;"><span class="status-pill ${isPaid ? "completed" : "pending"}">${isPaid ? "paid" : inv.status}</span></div>
+
+      <div class="invoice-meta">
+        <div>
+          <div class="label">Issued To</div>
+          <div style="font-weight:600;">${inv.customer_name}</div>
+          <div class="small-note">${inv.customer_email}</div>
+        </div>
+        <div class="meta-right">
+          <div><span class="small-note">Invoice No.</span> ${invoiceNumber}</div>
+          <div><span class="small-note">Date</span> ${fmtDate(inv.issued_at || inv.created_at)}</div>
+          ${inv.due_date ? `<div><span class="small-note">Due Date</span> ${fmtDate(inv.due_date)}</div>` : ""}
+        </div>
+      </div>
+
+      <span class="invoice-status-badge ${isPaid ? "is-paid" : "is-due"}">${isPaid ? "Paid" : "Payment Due"}</span>
+
+      <table class="invoice-table">
+        <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+      </table>
+
+      <div class="invoice-total-row">
+        <span class="label">Total Due</span>
+        <span class="amount">${formatMoney(inv.amount_cents)}</span>
+      </div>
+
+      <div class="invoice-section-label">Payment</div>
+      <div id="pay-options"></div>
     </div>
-    <div id="pay-options" style="margin-top:24px;"></div>
   `;
 
-  if (isPaid) return;
+  const optionsEl = document.getElementById("pay-options");
+
+  if (isPaid) {
+    optionsEl.innerHTML = `<p>This invoice has been paid${inv.payment_provider ? ` via ${inv.payment_provider}` : ""}. Thank you!</p>`;
+    return;
+  }
 
   const methods = (inv.allowed_payment_methods || "").split(",").filter(Boolean);
-  const optionsEl = document.getElementById("pay-options");
+  if (!methods.length) {
+    optionsEl.innerHTML = `<p class="small-note">Payment options will be added to this invoice shortly — check back soon, or reach out to hello@joyfullypresent.life.</p>`;
+    return;
+  }
 
   if (methods.includes("stripe")) {
     const btn = document.createElement("button");
