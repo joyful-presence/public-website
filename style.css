@@ -673,8 +673,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 /* Announcement Bar Styles */
 #booking-announcement {
-  background-color: #222222; /* Dark background to stand out */
-  color: #ffffff; /* White text */
+  background-color: #46b2fa; /* Dark background to stand out */
+  color: #000000; /* White text */
   text-align: center; /* Centers the text perfectly */
   padding: 12px 20px;
   font-family: Arial, sans-serif;
