@@ -639,3 +639,35 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 .page-hero .wrap { max-width: 720px; }
+/* Layout for My Story Section */
+.story-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px; /* Equal spacing between image and text */
+  align-items: flex-start;
+  margin-bottom: 50px; /* Adds space before "How I work" begins */
+}
+
+/* Sizing the smaller image */
+.story-image {
+  flex: 0 0 280px; /* Locks the image container width */
+}
+
+.story-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px; /* Keeps the rounded corners from your screenshot */
+  display: block;
+}
+
+/* My Story Text Sizing */
+.story-text {
+  flex: 1;
+  min-width: 300px; /* Forces mobile stacking when screen gets too small */
+}
+
+/* How I Work Section */
+.work-container {
+  width: 100%;
+  clear: both;
+}
