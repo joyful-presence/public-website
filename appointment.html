@@ -103,7 +103,7 @@ async function init() {
         <span class="pay-pill">${a.payment_status}</span>
       </div>
       <p class="small-note">Booked for ${a.customer_name} (${a.email})</p>
-      ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn btn-primary" style="margin-bottom:12px; display:inline-block;">Join Zoom</a><br>` : ""}
+      ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn btn-primary" style="margin-bottom:6px; display:inline-block;">Join Zoom</a><div class="small-note" style="margin-bottom:12px;">Passcode: Joyfully</div>` : ""}
       ${a.status !== "cancelled" ? `<button class="btn-small danger" id="cancel-btn">Cancel appointment</button>` : ""}
     </div>
   `;
