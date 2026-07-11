@@ -1,1811 +1,347 @@
-// ============================================================================
-// Joyfully Present LLC — booking-api Worker
-// Paste into Cloudflare Dashboard: Worker > Edit code > replace all, Deploy.
-//
-// Env vars (Settings > Variables and Secrets):
-//   SITE_URL              e.g. https://joyfullypresent.life
-//   WORKER_URL             e.g. https://api.joyfullypresent.life
-//   GOOGLE_CLIENT_ID       plain text
-//   GOOGLE_CLIENT_SECRET   encrypt this one
-//   SSO_API_URL            e.g. https://sso.joyfullypresent.life
-//   SSO_SHARED_SECRET      encrypt this one — must match the sso-api Worker
-//   STRIPE_SECRET_KEY      encrypt this one
-//   STRIPE_WEBHOOK_SECRET  encrypt this one
-//   PAYPAL_CLIENT_ID       plain text
-//   PAYPAL_CLIENT_SECRET   encrypt this one
-//   PAYPAL_ENV             "sandbox" or "live"
-//   RESEND_API_KEY         encrypt this one
-//   DOCUSEAL_API_KEY       encrypt this one — from DocuSeal > Settings > API
-//   DOCUSEAL_API_BASE      https://api.docuseal.com (or your self-hosted URL)
-//
-// Bindings (Settings > Bindings):
-//   D1 database bound as: DB
-//
-// Business timezone is assumed to be America/Los_Angeles throughout.
-// ============================================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session | Joyfully Present Life Coaching</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+</head>
+<body>
 
-const BUSINESS_TZ = "America/Los_Angeles";
-const SLOT_INTERVAL_MINUTES = 30;
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+    </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+    </div>
+  </nav>
+</header>
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Book a Session</span>
+      <h1>Let's find a time</h1>
+    </div>
+  </section>
 
-    const allowedOrigins = [env.SITE_URL, env.ACCOUNTS_SITE_URL].filter(Boolean).map((o) => o.replace(/\/$/, ""));
-    const requestOrigin = (request.headers.get("Origin") || "").replace(/\/$/, "");
-    const originToAllow = allowedOrigins.includes(requestOrigin) ? requestOrigin : (env.SITE_URL || requestOrigin || "*");
+  <section>
+    <div class="wrap narrow">
 
-    const cors = {
-      "Access-Control-Allow-Origin": originToAllow,
-      "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Credentials": "true",
-      "Vary": "Origin",
-    };
+      <div class="steps">
+        <div class="step-dot active" id="dot-1"><span class="num">1</span>Service</div>
+        <div class="step-dot" id="dot-2"><span class="num">2</span>Time</div>
+        <div class="step-dot" id="dot-3"><span class="num">3</span>Details</div>
+        <div class="step-dot" id="dot-4"><span class="num">4</span>Confirm</div>
+      </div>
 
-    if (method === "OPTIONS") return new Response(null, { headers: cors });
+      <div id="error-box"></div>
 
-    try {
-      // ---------------- Google Sign-In ----------------
-      if (path === "/auth/google/start") return await handleGoogleStart(request, env);
-      if (path === "/auth/google/callback") return await handleGoogleCallback(request, env);
-      if (path === "/auth/me") return await handleMe(request, env, cors);
-      if (path === "/auth/logout") return await handleLogout(request, env, cors);
+      <!-- Step 1: service -->
+      <div class="step-panel" id="step-1">
+        <div class="option-list" id="service-list">
+          <p class="small-note">Loading services…</p>
+        </div>
+      </div>
 
-      // ---------------- Standalone SSO handoff ----------------
-      if (path === "/auth/sso/start") return await handleSsoStart(request, env);
-      if (path === "/auth/sso/callback") return await handleSsoCallback(request, env);
+      <!-- Step 2: date + time -->
+      <div class="step-panel" id="step-2" style="display:none;">
+        <input type="date" class="date-input" id="date-input">
+        <div class="slot-grid" id="slot-grid"></div>
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(1)">Back</button>
+        </div>
+      </div>
 
-      // ---------------- Public booking API ----------------
-      if (method === "GET" && path === "/api/services") return await apiServices(env, cors);
-      if (method === "GET" && path === "/api/availability") return await apiAvailability(request, env, cors);
-      if (method === "POST" && path === "/api/book") return await apiBook(request, env, cors);
-      if (method === "GET" && path === "/api/my-appointments") return await apiMyAppointments(request, env, cors);
-      if (method === "GET" && path === "/api/my-credits") return await apiMyCredits(request, env, cors);
-      if (method === "GET" && path === "/api/appointment") return await apiGetGuestAppointment(request, env, cors);
-      const cancelMatch = path.match(/^\/api\/appointments\/([^/]+)\/cancel$/);
-      if (method === "POST" && cancelMatch) return await apiCancelAppointment(request, env, cors, cancelMatch[1]);
+      <!-- Step 3: details -->
+      <div class="step-panel" id="step-3" style="display:none;">
+        <div id="signed-in-view" style="display:none;">
+          <div class="signed-in-box" id="signed-in-box"></div>
+        </div>
 
-      // ---------------- Admin auth ----------------
-      if (method === "POST" && path === "/admin/setup") return await adminSetup(request, env, cors);
-      if (method === "POST" && path === "/admin/login") return await adminLogin(request, env, cors);
-      if (method === "POST" && path === "/admin/logout") return await adminLogout(request, env, cors);
-      if (method === "GET" && path === "/admin/me") return await adminMe(request, env, cors);
+        <div id="guest-view">
+          <a class="google-btn" id="google-signin-btn" href="#">Continue with Google</a>
+          <a class="google-btn" id="sso-signin-btn" href="#" style="margin-top:10px;">Sign In / Create Account</a>
+          <div class="divider-or">or enter your details</div>
+          <div class="form-group">
+            <label for="g-name">Full name</label>
+            <input type="text" id="g-name" required>
+          </div>
+          <div class="form-group">
+            <label for="g-email">Email</label>
+            <input type="email" id="g-email" required>
+          </div>
+          <div class="form-group">
+            <label for="g-phone">Phone (optional)</label>
+            <input type="tel" id="g-phone">
+          </div>
+        </div>
 
-      // ---------------- Admin: services ----------------
-      if (method === "GET" && path === "/admin/services") return await withAdmin(request, env, cors, () => adminListServices(env, cors));
-      if (method === "POST" && path === "/admin/services") return await withAdmin(request, env, cors, () => adminCreateService(request, env, cors));
-      const svcMatch = path.match(/^\/admin\/services\/([^/]+)$/);
-      if (svcMatch && method === "PUT") return await withAdmin(request, env, cors, () => adminUpdateService(request, env, cors, svcMatch[1]));
-      if (svcMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteService(env, cors, svcMatch[1]));
+        <div class="wizard-actions">
+          <button class="btn btn-ghost" onclick="goToStep(selectedService && selectedService.is_package ? 1 : 2)">Back</button>
+          <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+      </div>
 
-      // ---------------- Admin: appointments ----------------
-      if (method === "GET" && path === "/admin/appointments") return await withAdmin(request, env, cors, () => adminListAppointments(env, cors));
-      const apptMatch = path.match(/^\/admin\/appointments\/([^/]+)$/);
-      if (apptMatch && method === "PATCH") return await withAdmin(request, env, cors, () => adminUpdateAppointment(request, env, cors, apptMatch[1]));
-      if (apptMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteAppointment(env, cors, apptMatch[1]));
+      <!-- Step 4: confirmation -->
+      <div class="step-panel" id="step-4" style="display:none;">
+        <div class="success-box">
+          <div class="check">&#10003;</div>
+          <h2>You're booked</h2>
+          <p id="confirm-summary"></p>
+          <p id="confirm-token-note" class="small-note" style="display:none;"></p>
+          <div id="confirm-docs-note" style="display:none; text-align:left; margin-top:16px;"></div>
+          <a href="index.html" class="btn btn-primary" style="margin-top:10px;">Back to Home</a>
+        </div>
+      </div>
 
-      // ---------------- Admin: invoices ----------------
-      if (method === "GET" && path === "/admin/invoices") return await withAdmin(request, env, cors, () => adminListInvoices(env, cors));
-      if (method === "POST" && path === "/admin/invoices") return await withAdmin(request, env, cors, () => adminCreateInvoice(request, env, cors));
-      const invMatch = path.match(/^\/admin\/invoices\/([^/]+)$/);
-      if (invMatch && method === "GET") return await withAdmin(request, env, cors, () => adminGetInvoice(env, cors, invMatch[1]));
-      if (invMatch && method === "PATCH") return await withAdmin(request, env, cors, () => adminUpdateInvoice(request, env, cors, invMatch[1]));
-      if (invMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteInvoice(env, cors, invMatch[1]));
+    </div>
+  </section>
+</main>
 
-      // ---------------- Admin: availability ----------------
-      if (method === "GET" && path === "/admin/availability") return await withAdmin(request, env, cors, () => adminListAvailability(env, cors));
-      if (method === "POST" && path === "/admin/availability") return await withAdmin(request, env, cors, () => adminAddAvailability(request, env, cors));
-      const availMatch = path.match(/^\/admin\/availability\/([^/]+)$/);
-      if (availMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteAvailability(env, cors, availMatch[1]));
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
+    </div>
+  </div>
+</footer>
 
-      // ---------------- Admin: blocked dates ----------------
-      if (method === "GET" && path === "/admin/blocked-dates") return await withAdmin(request, env, cors, () => adminListBlockedDates(env, cors));
-      if (method === "POST" && path === "/admin/blocked-dates") return await withAdmin(request, env, cors, () => adminAddBlockedDate(request, env, cors));
-      const blockMatch = path.match(/^\/admin\/blocked-dates\/([^/]+)$/);
-      if (blockMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteBlockedDate(env, cors, blockMatch[1]));
+<script src="app-config.js"></script>
+<script>
+let selectedService = null;
+let selectedSlot = null;
+let currentCustomer = null;
 
-      // ---------------- Admin: customer search ----------------
-      if (method === "GET" && path === "/admin/customers") return await withAdmin(request, env, cors, () => adminSearchCustomers(request, env, cors));
+const params = new URLSearchParams(location.search);
+const preselectServiceId = params.get("service");
 
-      // ---------------- Admin: payment settings ----------------
-      if (method === "GET" && path === "/admin/payment-settings") return await withAdmin(request, env, cors, () => adminGetPaymentSettings(env, cors));
-      if (method === "PUT" && path === "/admin/payment-settings") return await withAdmin(request, env, cors, () => adminUpdatePaymentSettings(request, env, cors));
-
-      // ---------------- Admin: site settings (default Zoom link) ----------------
-      if (method === "GET" && path === "/admin/site-settings") return await withAdmin(request, env, cors, () => adminGetSiteSettings(env, cors));
-      if (method === "PUT" && path === "/admin/site-settings") return await withAdmin(request, env, cors, () => adminUpdateSiteSettings(request, env, cors));
-
-      // ---------------- Admin: required documents ----------------
-      if (method === "GET" && path === "/admin/documents") return await withAdmin(request, env, cors, () => adminListDocuments(env, cors));
-      if (method === "POST" && path === "/admin/documents") return await withAdmin(request, env, cors, () => adminCreateDocument(request, env, cors));
-      const docMatch = path.match(/^\/admin\/documents\/([^/]+)$/);
-      if (docMatch && method === "PUT") return await withAdmin(request, env, cors, () => adminUpdateDocument(request, env, cors, docMatch[1]));
-      if (docMatch && method === "DELETE") return await withAdmin(request, env, cors, () => adminDeleteDocument(env, cors, docMatch[1]));
-
-      // ---------------- Admin: customers + their document status ----------------
-      if (method === "GET" && path === "/admin/customers-full") return await withAdmin(request, env, cors, () => adminListCustomersFull(env, cors));
-      if (method === "PATCH" && path === "/admin/customer-documents") return await withAdmin(request, env, cors, () => adminSetCustomerDocumentStatus(request, env, cors));
-
-      // ---------------- Public: my required documents ----------------
-      if (method === "GET" && path === "/api/my-documents") return await apiMyDocuments(request, env, cors);
-
-      // ---------------- DocuSeal webhook (server-to-server) ----------------
-      if (method === "POST" && path === "/webhooks/docuseal") return await handleDocusealWebhook(request, env);
-
-      // ---------------- Public: payment settings (read-only, for invoice pages) ----------------
-      if (method === "GET" && path === "/api/payment-settings") return await apiPaymentSettings(env, cors);
-
-      // ---------------- Public: invoice viewing + paying ----------------
-      if (method === "GET" && path === "/api/invoice") return await apiGetInvoice(request, env, cors);
-      const stripePayMatch = path.match(/^\/api\/invoice\/([^/]+)\/pay\/stripe$/);
-      if (method === "POST" && stripePayMatch) return await apiPayInvoiceStripe(request, env, cors, stripePayMatch[1]);
-      const paypalCreateMatch = path.match(/^\/api\/invoice\/([^/]+)\/pay\/paypal\/create-order$/);
-      if (method === "POST" && paypalCreateMatch) return await apiPaypalCreateOrder(request, env, cors, paypalCreateMatch[1]);
-      const paypalCaptureMatch = path.match(/^\/api\/invoice\/([^/]+)\/pay\/paypal\/capture-order$/);
-      if (method === "POST" && paypalCaptureMatch) return await apiPaypalCaptureOrder(request, env, cors, paypalCaptureMatch[1]);
-
-      // ---------------- Stripe webhook (server-to-server, no CORS needed) ----------------
-      if (method === "POST" && path === "/webhooks/stripe") return await handleStripeWebhook(request, env);
-
-      return await json({ error: "Not found" }, 404, cors);
-    } catch (err) {
-      return await json({ error: err.message }, 500, cors);
-    }
-  },
-
-  // Fires on the Cron Trigger schedule set in Worker > Settings > Triggers.
-  // Recommended: every 5 minutes ("*/5 * * * *"). Finds appointments starting
-  // within the next 15 minutes that haven't had a reminder sent yet.
-  async scheduled(event, env, ctx) {
-    try {
-      const now = new Date();
-      const cutoff = new Date(now.getTime() + 15 * 60000);
-
-      const { results: due } = await env.DB.prepare(
-        `SELECT a.id, a.start_time, a.meeting_link, s.name AS service_name, c.id AS customer_id, c.name AS customer_name, c.email AS customer_email
-         FROM appointments a
-         JOIN services s ON s.id = a.service_id
-         JOIN customers c ON c.id = a.customer_id
-         WHERE a.status = 'confirmed' AND a.reminder_sent = 0
-           AND a.start_time > ? AND a.start_time <= ?`
-      ).bind(now.toISOString(), cutoff.toISOString()).all();
-
-      for (const appt of due) {
-        const docStatus = await getCustomerDocumentStatus(env, appt.customer_id);
-        await sendReminderEmailSafely(
-          env,
-          { name: appt.customer_name, email: appt.customer_email },
-          { service_name: appt.service_name, start_time: appt.start_time, meeting_link: appt.meeting_link },
-          docStatus.allComplete
-        );
-        await env.DB.prepare("UPDATE appointments SET reminder_sent = 1 WHERE id = ?").bind(appt.id).run();
-      }
-    } catch (err) {
-      // Best-effort — a failed reminder run shouldn't throw the Worker into an error state.
-    }
-  },
-};
-
-// ============================================================================
-// Google Sign-In
-// ============================================================================
-
-function handleGoogleStart(request, env) {
-  const url = new URL(request.url);
-  const returnTo = url.searchParams.get("return_to") || "/my-appointments.html";
-  const state = crypto.randomUUID();
-
-  const googleUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  googleUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
-  googleUrl.searchParams.set("redirect_uri", `${env.WORKER_URL}/auth/google/callback`);
-  googleUrl.searchParams.set("response_type", "code");
-  googleUrl.searchParams.set("scope", "openid email profile");
-  googleUrl.searchParams.set("state", state);
-  googleUrl.searchParams.set("prompt", "select_account");
-
-  const headers = new Headers();
-  headers.set("Location", googleUrl.toString());
-  headers.append("Set-Cookie", `oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
-  headers.append("Set-Cookie", `oauth_return=${encodeURIComponent(returnTo)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
-  return new Response(null, { status: 302, headers });
+function showError(msg) {
+  document.getElementById("error-box").innerHTML = msg ? `<div class="error-note">${msg}</div>` : "";
 }
 
-async function handleGoogleCallback(request, env) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const cookieState = getCookie(request, "oauth_state");
-  const returnTo = decodeURIComponent(getCookie(request, "oauth_return") || "/my-appointments.html");
+function goToStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`step-${i}`).style.display = i === n ? "block" : "none";
+    const dot = document.getElementById(`dot-${i}`);
+    dot.classList.toggle("active", i === n);
+    dot.classList.toggle("done", i < n);
+  }
+  showError("");
+}
 
-  if (!code || !state || state !== cookieState) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: `${env.WORKER_URL}/auth/google/callback`, grant_type: "authorization_code",
-    }),
+// ---------- Step 1: services ----------
+async function loadServices() {
+  const res = await fetch(`${API_BASE}/api/services`);
+  const data = await res.json();
+  const list = document.getElementById("service-list");
+  list.innerHTML = "";
+  data.services.forEach((s) => {
+    const el = document.createElement("div");
+    el.className = "option-card";
+    const bundleNote = s.is_package ? ` &middot; <strong>${s.package_size}-session bundle</strong>` : "";
+    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min${bundleNote}</p></div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
+    el.addEventListener("click", () => selectService(s, el));
+    list.appendChild(el);
+    if (preselectServiceId === s.id) selectService(s, el);
   });
-  if (!tokenRes.ok) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-  const tokens = await tokenRes.json();
-
-  const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${tokens.id_token}`);
-  if (!verifyRes.ok) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-  const profile = await verifyRes.json();
-  if (profile.aud !== env.GOOGLE_CLIENT_ID) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-
-  const googleSub = profile.sub;
-  const email = profile.email;
-  const name = profile.name || email;
-
-  let customer = await env.DB.prepare("SELECT * FROM customers WHERE google_sub = ?").bind(googleSub).first();
-  if (!customer) {
-    customer = await env.DB.prepare("SELECT * FROM customers WHERE email = ?").bind(email).first();
-    if (customer) {
-      await env.DB.prepare("UPDATE customers SET google_sub = ?, auth_provider = 'google' WHERE id = ?").bind(googleSub, customer.id).run();
-    } else {
-      const id = crypto.randomUUID();
-      await env.DB.prepare(`INSERT INTO customers (id, email, name, auth_provider, google_sub) VALUES (?, ?, ?, 'google', ?)`)
-        .bind(id, email, name, googleSub).run();
-      customer = { id };
-    }
-  }
-
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  await env.DB.prepare("INSERT INTO customer_sessions (id, customer_id, expires_at) VALUES (?, ?, ?)").bind(sessionId, customer.id, expiresAt).run();
-
-  const headers = new Headers();
-  headers.set("Location", `${env.SITE_URL}${returnTo}`);
-  headers.append("Set-Cookie", `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000`);
-  headers.append("Set-Cookie", `oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
-  headers.append("Set-Cookie", `oauth_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
-  return new Response(null, { status: 302, headers });
 }
 
-async function handleMe(request, env, cors) {
-  const sessionId = getCookie(request, "session");
-  if (!sessionId) return await json({ customer: null }, 200, cors);
-  const row = await env.DB.prepare(
-    `SELECT c.id, c.email, c.name, c.phone FROM customer_sessions s
-     JOIN customers c ON c.id = s.customer_id
-     WHERE s.id = ? AND s.expires_at > datetime('now')`
-  ).bind(sessionId).first();
-  return await json({ customer: row || null }, 200, cors);
-}
+function selectService(service, el) {
+  selectedService = service;
+  document.querySelectorAll("#service-list .option-card").forEach((c) => c.classList.remove("selected"));
+  el.classList.add("selected");
 
-async function handleLogout(request, env, cors) {
-  const sessionId = getCookie(request, "session");
-  if (sessionId) await env.DB.prepare("DELETE FROM customer_sessions WHERE id = ?").bind(sessionId).run();
-  const headers = new Headers(cors);
-  headers.append("Set-Cookie", `session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
-  headers.set("Content-Type", "application/json");
-  return new Response(JSON.stringify({ ok: true }), { headers });
-}
-
-// ============================================================================
-// Standalone SSO handoff (email/password accounts on a separate system)
-// ============================================================================
-
-function handleSsoStart(request, env) {
-  const url = new URL(request.url);
-  const returnTo = url.searchParams.get("return_to") || "/my-appointments.html";
-
-  const headers = new Headers();
-  const authorizeUrl = `${env.SSO_API_URL}/authorize?return_to=${encodeURIComponent(`${url.origin}/auth/sso/callback`)}`;
-  headers.set("Location", authorizeUrl);
-  headers.append("Set-Cookie", `oauth_return=${encodeURIComponent(returnTo)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
-  return new Response(null, { status: 302, headers });
-}
-
-async function handleSsoCallback(request, env) {
-  const url = new URL(request.url);
-  const ticket = url.searchParams.get("sso_ticket");
-  const returnTo = decodeURIComponent(getCookie(request, "oauth_return") || "/my-appointments.html");
-  if (!ticket) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-
-  const verifyRes = await fetch(`${env.SSO_API_URL}/verify-ticket`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-SSO-Secret": env.SSO_SHARED_SECRET },
-    body: JSON.stringify({ ticket }),
-  });
-  if (!verifyRes.ok) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-  const { account } = await verifyRes.json();
-  if (!account) return await redirectWithMessage(env, "Sign-in failed — please try again.");
-
-  let customer = await env.DB.prepare("SELECT * FROM customers WHERE sso_account_id = ?").bind(account.id).first();
-  if (!customer) {
-    customer = await env.DB.prepare("SELECT * FROM customers WHERE email = ?").bind(account.email).first();
-    if (customer) {
-      await env.DB.prepare("UPDATE customers SET sso_account_id = ? WHERE id = ?").bind(account.id, customer.id).run();
-    } else {
-      const id = crypto.randomUUID();
-      await env.DB.prepare(`INSERT INTO customers (id, email, name, auth_provider, sso_account_id) VALUES (?, ?, ?, 'sso', ?)`)
-        .bind(id, account.email, account.name, account.id).run();
-      customer = { id };
-    }
-  }
-
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  await env.DB.prepare("INSERT INTO customer_sessions (id, customer_id, expires_at) VALUES (?, ?, ?)").bind(sessionId, customer.id, expiresAt).run();
-
-  const headers = new Headers();
-  headers.set("Location", `${env.SITE_URL}${returnTo}`);
-  headers.append("Set-Cookie", `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000`);
-  headers.append("Set-Cookie", `oauth_return=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
-  return new Response(null, { status: 302, headers });
-}
-
-// ============================================================================
-// Public booking API
-// ============================================================================
-
-async function apiServices(env, cors) {
-  const { results } = await env.DB.prepare(
-    "SELECT id, name, description, duration_minutes, price_cents, is_package, package_size, redeemable_service_id FROM services WHERE active = 1 ORDER BY price_cents, name"
-  ).all();
-  return await json({ services: results }, 200, cors);
-}
-
-async function apiMyCredits(request, env, cors) {
-  const sessionId = getCookie(request, "session");
-  if (!sessionId) return await json({ credits: [] }, 200, cors);
-  const session = await env.DB.prepare("SELECT customer_id FROM customer_sessions WHERE id = ? AND expires_at > datetime('now')").bind(sessionId).first();
-  if (!session) return await json({ credits: [] }, 200, cors);
-
-  const { results } = await env.DB.prepare(
-    `SELECT redeemable_service_id, SUM(sessions_total - sessions_used) AS remaining
-     FROM customer_credits WHERE customer_id = ? GROUP BY redeemable_service_id HAVING remaining > 0`
-  ).bind(session.customer_id).all();
-
-  return await json({ credits: results }, 200, cors);
-}
-
-async function apiAvailability(request, env, cors) {
-  const url = new URL(request.url);
-  const date = url.searchParams.get("date"); // 'YYYY-MM-DD'
-  const serviceId = url.searchParams.get("service_id");
-  if (!date || !serviceId) return await json({ error: "date and service_id are required" }, 400, cors);
-
-  const service = await env.DB.prepare("SELECT * FROM services WHERE id = ? AND active = 1").bind(serviceId).first();
-  if (!service) return await json({ error: "Service not found" }, 404, cors);
-
-  const blocked = await env.DB.prepare("SELECT id FROM blocked_dates WHERE date = ?").bind(date).first();
-  if (blocked) return await json({ slots: [] }, 200, cors);
-
-  const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
-  const { results: hours } = await env.DB.prepare("SELECT start_time, end_time FROM availability WHERE weekday = ? ORDER BY start_time").bind(weekday).all();
-  if (!hours.length) return await json({ slots: [] }, 200, cors);
-
-  // Use a proper UTC range for the LA calendar day, rather than comparing UTC date
-  // strings directly — an evening LA slot can already be "tomorrow" in UTC, which
-  // was previously letting already-booked evening slots slip through as available.
-  const dayStartUTC = laToUTC(date, "00:00");
-  const dayEndUTC = new Date(dayStartUTC.getTime() + 24 * 60 * 60000);
-  const { results: existing } = await env.DB.prepare(
-    "SELECT start_time, end_time FROM appointments WHERE status != 'cancelled' AND start_time < ? AND end_time > ?"
-  ).bind(dayEndUTC.toISOString(), dayStartUTC.toISOString()).all();
-
-  const duration = service.duration_minutes;
-  const now = Date.now();
-  const slots = [];
-
-  for (const block of hours) {
-    let cursorStart = laToUTC(date, block.start_time);
-    const blockEnd = laToUTC(date, block.end_time);
-    while (cursorStart.getTime() + duration * 60000 <= blockEnd.getTime()) {
-      const slotEnd = new Date(cursorStart.getTime() + duration * 60000);
-      const overlaps = existing.some((e) => {
-        const eStart = new Date(e.start_time).getTime();
-        const eEnd = new Date(e.end_time).getTime();
-        return cursorStart.getTime() < eEnd && slotEnd.getTime() > eStart;
-      });
-      if (!overlaps && cursorStart.getTime() > now) {
-        slots.push({ start_time: cursorStart.toISOString(), label: formatLA(cursorStart) });
-      }
-      cursorStart = new Date(cursorStart.getTime() + SLOT_INTERVAL_MINUTES * 60000);
-    }
-  }
-
-  // Guarantee earliest-to-latest order even if availability blocks overlap or were entered out of order.
-  slots.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-
-  return await json({ slots }, 200, cors);
-}
-
-async function apiBook(request, env, cors) {
-  const body = await request.json();
-  const { service_id, start_time, guest, use_credit } = body;
-  if (!service_id) return await json({ error: "service_id is required" }, 400, cors);
-
-  const service = await env.DB.prepare("SELECT * FROM services WHERE id = ? AND active = 1").bind(service_id).first();
-  if (!service) return await json({ error: "Service not found" }, 404, cors);
-  if (!service.is_package && !start_time) return await json({ error: "start_time is required" }, 400, cors);
-
-  // Determine the customer: signed-in Google/SSO customer, or a guest.
-  let customerId;
-  let guestToken = null;
-  const sessionId = getCookie(request, "session");
-
-  if (sessionId) {
-    const session = await env.DB.prepare(
-      "SELECT customer_id FROM customer_sessions WHERE id = ? AND expires_at > datetime('now')"
-    ).bind(sessionId).first();
-    if (session) customerId = session.customer_id;
-  }
-
-  if (!customerId) {
-    if (!guest || !guest.name || !guest.email) return await json({ error: "Guest name and email are required" }, 400, cors);
-    let existing = await env.DB.prepare("SELECT id FROM customers WHERE email = ?").bind(guest.email).first();
-    if (existing) {
-      customerId = existing.id;
-      await env.DB.prepare("UPDATE customers SET name = ?, phone = ? WHERE id = ?").bind(guest.name, guest.phone || null, customerId).run();
-    } else {
-      customerId = crypto.randomUUID();
-      await env.DB.prepare("INSERT INTO customers (id, email, name, phone, auth_provider) VALUES (?, ?, ?, ?, 'guest')")
-        .bind(customerId, guest.email, guest.name, guest.phone || null).run();
-    }
-    guestToken = crypto.randomUUID();
-  }
-
-  const customer = await env.DB.prepare("SELECT * FROM customers WHERE id = ?").bind(customerId).first();
-  const zoomLink = await getDefaultZoomLink(env);
-  await ensureDocumentsSent(env, customer);
-  const docStatus = await getCustomerDocumentStatus(env, customerId);
-
-  // ---------------- Buying a session bundle (no time slot involved) ----------------
   if (service.is_package) {
-    const creditId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO customer_credits (id, customer_id, redeemable_service_id, sessions_total, source_service_id)
-       VALUES (?, ?, ?, ?, ?)`
-    ).bind(creditId, customerId, service.redeemable_service_id, service.package_size, service.id).run();
+    // Bundles aren't tied to a time slot — skip straight to details/payment.
+    selectedSlot = null;
+    goToStep(3);
+    checkSignedIn();
+    return;
+  }
 
-    const invoice = await createAutoInvoice(env, {
-      customerId,
-      appointmentId: null,
-      items: [{ description: service.name, quantity: 1, unit_price_cents: service.price_cents }],
+  goToStep(2);
+  const dateInput = document.getElementById("date-input");
+  const today = new Date().toISOString().split("T")[0];
+  dateInput.min = today;
+  if (!dateInput.value) dateInput.value = today;
+  loadSlots();
+}
+
+// ---------- Step 2: date + time ----------
+document.getElementById("date-input").addEventListener("change", loadSlots);
+
+async function loadSlots() {
+  const date = document.getElementById("date-input").value;
+  if (!date || !selectedService) return;
+  const grid = document.getElementById("slot-grid");
+  grid.innerHTML = `<p class="empty-note">Loading times…</p>`;
+  const res = await fetch(`${API_BASE}/api/availability?date=${date}&service_id=${selectedService.id}`);
+  const data = await res.json();
+  grid.innerHTML = "";
+  if (!data.slots || !data.slots.length) {
+    grid.innerHTML = `<p class="empty-note">No times available that day — try another date.</p>`;
+    return;
+  }
+  data.slots.forEach((slot) => {
+    const btn = document.createElement("button");
+    btn.className = "slot-btn";
+    btn.textContent = slot.label.split(", ").slice(1).join(", ");
+    btn.addEventListener("click", () => {
+      selectedSlot = slot;
+      document.querySelectorAll(".slot-btn").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      goToStep(3);
+      checkSignedIn();
     });
+    grid.appendChild(btn);
+  });
+}
 
-    await sendInvoiceEmailSafely(env, customer, invoice, null, docStatus.documents);
-    await sendAdminNotification(env, `New bundle purchase: ${service.name}`,
-      `${customer.name} (${customer.email}) purchased ${service.name} — ${service.package_size} sessions — for $${(service.price_cents / 100).toFixed(2)}.`);
+// ---------- Step 3: details ----------
+async function checkSignedIn() {
+  const res = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
+  const data = await res.json();
+  currentCustomer = data.customer;
+  const returnPath = "/book.html?service=" + (selectedService ? selectedService.id : "");
+  document.getElementById("google-signin-btn").href = `${API_BASE}/auth/google/start?return_to=${encodeURIComponent(returnPath)}`;
+  document.getElementById("sso-signin-btn").href = `${API_BASE}/auth/sso/start?return_to=${encodeURIComponent(returnPath)}`;
+  if (currentCustomer) {
+    document.getElementById("signed-in-view").style.display = "block";
+    document.getElementById("guest-view").style.display = "none";
+    let boxHtml = `Booking as <strong>${currentCustomer.name}</strong> (${currentCustomer.email})`;
 
-    return await json({
-      package: true,
-      sessions_granted: service.package_size,
-      service_name: service.name,
-      invoice_token: invoice.invoice_access_token,
-      documents: docStatus.documents,
-    }, 200, cors);
-  }
-
-  // ---------------- Booking a normal, timed session ----------------
-  const startDate = new Date(start_time);
-  const endDate = new Date(startDate.getTime() + service.duration_minutes * 60000);
-
-  const { results: clash } = await env.DB.prepare(
-    "SELECT id FROM appointments WHERE status != 'cancelled' AND start_time < ? AND end_time > ?"
-  ).bind(endDate.toISOString(), startDate.toISOString()).all();
-  if (clash.length) return await json({ error: "That time was just booked — please pick another." }, 409, cors);
-
-  // Check whether to redeem a bundle credit instead of charging again.
-  let creditUsed = null;
-  if (use_credit) {
-    creditUsed = await env.DB.prepare(
-      `SELECT * FROM customer_credits WHERE customer_id = ? AND redeemable_service_id = ? AND sessions_used < sessions_total
-       ORDER BY created_at LIMIT 1`
-    ).bind(customerId, service_id).first();
-  }
-
-  const appointmentId = crypto.randomUUID();
-  const paymentStatus = creditUsed ? "paid" : "unpaid";
-  await env.DB.prepare(
-    `INSERT INTO appointments (id, customer_id, service_id, start_time, end_time, status, payment_status, guest_access_token, meeting_link)
-     VALUES (?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)`
-  ).bind(appointmentId, customerId, service_id, startDate.toISOString(), endDate.toISOString(), paymentStatus, guestToken, zoomLink).run();
-
-  let invoiceToken = null;
-
-  if (creditUsed) {
-    await env.DB.prepare("UPDATE customer_credits SET sessions_used = sessions_used + 1 WHERE id = ?").bind(creditUsed.id).run();
-    await sendConfirmationEmailSafely(env, customer, service, startDate, zoomLink, docStatus.documents);
+    if (!selectedService.is_package) {
+      const creditsRes = await fetch(`${API_BASE}/api/my-credits`, { credentials: "include" });
+      const creditsData = await creditsRes.json();
+      const match = (creditsData.credits || []).find((c) => c.redeemable_service_id === selectedService.id);
+      if (match && match.remaining > 0) {
+        boxHtml += `<label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
+          <input type="checkbox" id="use-credit-checkbox" style="width:auto;" checked>
+          Use one of my ${match.remaining} available session credits (no charge)
+        </label>`;
+      }
+    }
+    document.getElementById("signed-in-box").innerHTML = boxHtml;
   } else {
-    const invoice = await createAutoInvoice(env, {
-      customerId,
-      appointmentId,
-      items: [{ description: `${service.name} — ${formatLA(startDate)}`, quantity: 1, unit_price_cents: service.price_cents }],
-    });
-    invoiceToken = invoice.invoice_access_token;
-    await sendInvoiceEmailSafely(env, customer, invoice, zoomLink, docStatus.documents);
-  }
-
-  await sendAdminNotification(env, `New booking: ${service.name}`,
-    `${customer.name} (${customer.email}) booked ${service.name} for ${formatLA(startDate)}.${creditUsed ? " (used a session credit)" : ""}`);
-
-  return await json({
-    appointment_id: appointmentId,
-    guest_token: guestToken,
-    start_time: startDate.toISOString(),
-    label: formatLA(startDate),
-    service_name: service.name,
-    used_credit: !!creditUsed,
-    invoice_token: invoiceToken,
-    documents: docStatus.documents,
-  }, 200, cors);
-}
-
-async function apiMyAppointments(request, env, cors) {
-  const sessionId = getCookie(request, "session");
-  if (!sessionId) return await json({ error: "Not signed in" }, 401, cors);
-  const session = await env.DB.prepare("SELECT customer_id FROM customer_sessions WHERE id = ? AND expires_at > datetime('now')").bind(sessionId).first();
-  if (!session) return await json({ error: "Not signed in" }, 401, cors);
-
-  const { results } = await env.DB.prepare(
-    `SELECT a.id, a.start_time, a.end_time, a.status, a.payment_status, a.meeting_link, s.name AS service_name, s.price_cents
-     FROM appointments a JOIN services s ON s.id = a.service_id
-     WHERE a.customer_id = ? ORDER BY a.start_time DESC`
-  ).bind(session.customer_id).all();
-
-  const docStatus = await getCustomerDocumentStatus(env, session.customer_id);
-  const appointments = results.map((a) => ({ ...a, meeting_link: docStatus.allComplete ? a.meeting_link : null }));
-
-  return await json({ appointments, documents: docStatus.documents, documentsComplete: docStatus.allComplete }, 200, cors);
-}
-
-async function apiGetGuestAppointment(request, env, cors) {
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  if (!token) return await json({ error: "Missing token" }, 400, cors);
-
-  const row = await env.DB.prepare(
-    `SELECT a.id, a.start_time, a.end_time, a.status, a.payment_status, a.meeting_link, s.name AS service_name, s.price_cents, c.id AS customer_id, c.name AS customer_name, c.email
-     FROM appointments a JOIN services s ON s.id = a.service_id JOIN customers c ON c.id = a.customer_id
-     WHERE a.guest_access_token = ?`
-  ).bind(token).first();
-
-  if (!row) return await json({ error: "Appointment not found" }, 404, cors);
-
-  const docStatus = await getCustomerDocumentStatus(env, row.customer_id);
-  if (!docStatus.allComplete) row.meeting_link = null;
-
-  return await json({ appointment: row, documents: docStatus.documents, documentsComplete: docStatus.allComplete }, 200, cors);
-}
-
-async function apiCancelAppointment(request, env, cors, id) {
-  const body = await request.json().catch(() => ({}));
-  const sessionId = getCookie(request, "session");
-  let allowed = false;
-
-  if (sessionId) {
-    const session = await env.DB.prepare("SELECT customer_id FROM customer_sessions WHERE id = ? AND expires_at > datetime('now')").bind(sessionId).first();
-    if (session) {
-      const owns = await env.DB.prepare("SELECT id FROM appointments WHERE id = ? AND customer_id = ?").bind(id, session.customer_id).first();
-      if (owns) allowed = true;
-    }
-  }
-  if (!allowed && body.token) {
-    const owns = await env.DB.prepare("SELECT id FROM appointments WHERE id = ? AND guest_access_token = ?").bind(id, body.token).first();
-    if (owns) allowed = true;
-  }
-  if (!allowed) return await json({ error: "Not authorized" }, 403, cors);
-
-  await env.DB.prepare("UPDATE appointments SET status = 'cancelled' WHERE id = ?").bind(id).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-// ============================================================================
-// Admin auth
-// ============================================================================
-
-async function adminSetup(request, env, cors) {
-  const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM admin_users").first();
-  if (count.n > 0) return await json({ error: "An admin account already exists." }, 403, cors);
-
-  const body = await request.json();
-  if (!body.email || !body.password || body.password.length < 8) {
-    return await json({ error: "Email and a password of at least 8 characters are required." }, 400, cors);
-  }
-
-  const { hash, salt } = await hashPassword(body.password);
-  const id = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO admin_users (id, email, password_hash, password_salt) VALUES (?, ?, ?, ?)")
-    .bind(id, body.email, hash, salt).run();
-
-  return await json({ ok: true }, 200, cors);
-}
-
-async function adminLogin(request, env, cors) {
-  const body = await request.json();
-  const admin = await env.DB.prepare("SELECT * FROM admin_users WHERE email = ?").bind(body.email || "").first();
-  if (!admin) return await json({ error: "Incorrect email or password." }, 401, cors);
-
-  const { hash } = await hashPassword(body.password || "", admin.password_salt);
-  if (hash !== admin.password_hash) return await json({ error: "Incorrect email or password." }, 401, cors);
-
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
-  await env.DB.prepare("INSERT INTO admin_sessions (id, admin_id, expires_at) VALUES (?, ?, ?)").bind(sessionId, admin.id, expiresAt).run();
-
-  const headers = new Headers(cors);
-  headers.append("Set-Cookie", `admin_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=43200`);
-  headers.set("Content-Type", "application/json");
-  return new Response(JSON.stringify({ ok: true }), { headers });
-}
-
-async function adminLogout(request, env, cors) {
-  const sessionId = getCookie(request, "admin_session");
-  if (sessionId) await env.DB.prepare("DELETE FROM admin_sessions WHERE id = ?").bind(sessionId).run();
-  const headers = new Headers(cors);
-  headers.append("Set-Cookie", `admin_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
-  headers.set("Content-Type", "application/json");
-  return new Response(JSON.stringify({ ok: true }), { headers });
-}
-
-async function adminMe(request, env, cors) {
-  const admin = await getAdmin(request, env);
-  return await json({ admin: admin ? { email: admin.email } : null }, 200, cors);
-}
-
-async function getAdmin(request, env) {
-  const sessionId = getCookie(request, "admin_session");
-  if (!sessionId) return null;
-  return env.DB.prepare(
-    `SELECT a.id, a.email FROM admin_sessions s JOIN admin_users a ON a.id = s.admin_id
-     WHERE s.id = ? AND s.expires_at > datetime('now')`
-  ).bind(sessionId).first();
-}
-
-async function withAdmin(request, env, cors, handler) {
-  const admin = await getAdmin(request, env);
-  if (!admin) return await json({ error: "Not authorized" }, 401, cors);
-  return await handler();
-}
-
-// ============================================================================
-// Admin: services
-// ============================================================================
-
-async function adminListServices(env, cors) {
-  const { results } = await env.DB.prepare("SELECT * FROM services ORDER BY sort_order, name").all();
-  return await json({ services: results }, 200, cors);
-}
-
-async function adminCreateService(request, env, cors) {
-  const b = await request.json();
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO services (id, name, description, duration_minutes, price_cents, active, sort_order, is_package, package_size, redeemable_service_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id, b.name, b.description || "", b.duration_minutes || 60, b.price_cents || 0, b.active ? 1 : 0, b.sort_order || 0,
-    b.is_package ? 1 : 0, b.package_size || null, b.redeemable_service_id || null
-  ).run();
-  return await json({ id }, 200, cors);
-}
-
-async function adminUpdateService(request, env, cors, id) {
-  const b = await request.json();
-  await env.DB.prepare(
-    `UPDATE services SET name = ?, description = ?, duration_minutes = ?, price_cents = ?, active = ?, sort_order = ?,
-       is_package = ?, package_size = ?, redeemable_service_id = ?, updated_at = datetime('now')
-     WHERE id = ?`
-  ).bind(
-    b.name, b.description || "", b.duration_minutes, b.price_cents, b.active ? 1 : 0, b.sort_order || 0,
-    b.is_package ? 1 : 0, b.package_size || null, b.redeemable_service_id || null, id
-  ).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-async function adminDeleteService(env, cors, id) {
-  await env.DB.prepare("DELETE FROM services WHERE id = ?").bind(id).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-// ============================================================================
-// Admin: appointments
-// ============================================================================
-
-async function adminListAppointments(env, cors) {
-  const { results } = await env.DB.prepare(
-    `SELECT a.id, a.start_time, a.end_time, a.status, a.payment_status, a.notes, a.meeting_link,
-            s.name AS service_name, s.price_cents,
-            c.id AS customer_id, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
-     FROM appointments a
-     JOIN services s ON s.id = a.service_id
-     JOIN customers c ON c.id = a.customer_id
-     ORDER BY a.start_time DESC`
-  ).all();
-  return await json({ appointments: results }, 200, cors);
-}
-
-async function adminDeleteAppointment(env, cors, id) {
-  await env.DB.prepare("DELETE FROM appointments WHERE id = ?").bind(id).run();
-  return json({ ok: true }, 200, cors);
-}
-
-async function adminUpdateAppointment(request, env, cors, id) {
-  const b = await request.json();
-  const fields = [];
-  const values = [];
-  if (b.status) { fields.push("status = ?"); values.push(b.status); }
-  if (b.payment_status) { fields.push("payment_status = ?"); values.push(b.payment_status); }
-  if (b.meeting_link !== undefined) { fields.push("meeting_link = ?"); values.push(b.meeting_link); }
-  if (b.notes !== undefined) { fields.push("notes = ?"); values.push(b.notes); }
-  if (!fields.length) return await json({ error: "Nothing to update" }, 400, cors);
-  values.push(id);
-  await env.DB.prepare(`UPDATE appointments SET ${fields.join(", ")} WHERE id = ?`).bind(...values).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-// ============================================================================
-// Admin: invoices
-// ============================================================================
-
-async function adminListInvoices(env, cors) {
-  const { results } = await env.DB.prepare(
-    `SELECT i.*, c.name AS customer_name, c.email AS customer_email
-     FROM invoices i JOIN customers c ON c.id = i.customer_id
-     ORDER BY i.created_at DESC`
-  ).all();
-  return await json({ invoices: results }, 200, cors);
-}
-
-async function adminDeleteInvoice(env, cors, id) {
-  await env.DB.prepare("DELETE FROM invoice_items WHERE invoice_id = ?").bind(id).run();
-  await env.DB.prepare("DELETE FROM invoices WHERE id = ?").bind(id).run();
-  return json({ ok: true }, 200, cors);
-}
-
-async function adminGetInvoice(env, cors, id) {
-  const invoice = await env.DB.prepare(
-    `SELECT i.*, c.name AS customer_name, c.email AS customer_email
-     FROM invoices i JOIN customers c ON c.id = i.customer_id WHERE i.id = ?`
-  ).bind(id).first();
-  if (!invoice) return await json({ error: "Not found" }, 404, cors);
-  const { results: items } = await env.DB.prepare("SELECT * FROM invoice_items WHERE invoice_id = ?").bind(id).all();
-  return await json({ invoice, items }, 200, cors);
-}
-
-async function adminCreateInvoice(request, env, cors) {
-  const b = await request.json();
-  // b: { customer_id OR new_customer:{name,email,phone}, appointment_id, due_date, notes, items:[{description,quantity,unit_price_cents}] }
-
-  let customerId = b.customer_id;
-  if (!customerId && b.new_customer) {
-    const existing = await env.DB.prepare("SELECT id FROM customers WHERE email = ?").bind(b.new_customer.email).first();
-    if (existing) {
-      customerId = existing.id;
-    } else {
-      customerId = crypto.randomUUID();
-      await env.DB.prepare("INSERT INTO customers (id, email, name, phone, auth_provider) VALUES (?, ?, ?, ?, 'guest')")
-        .bind(customerId, b.new_customer.email, b.new_customer.name, b.new_customer.phone || null).run();
-    }
-  }
-  if (!customerId) return await json({ error: "A customer is required" }, 400, cors);
-  if (!b.items || !b.items.length) return await json({ error: "At least one line item is required" }, 400, cors);
-
-  const amount = b.items.reduce((sum, it) => sum + it.quantity * it.unit_price_cents, 0);
-  const invoiceId = crypto.randomUUID();
-  const invoiceToken = crypto.randomUUID();
-  const allowedMethods = Array.isArray(b.allowed_payment_methods) ? b.allowed_payment_methods.join(",") : (b.allowed_payment_methods || "");
-  await env.DB.prepare(
-    `INSERT INTO invoices (id, customer_id, appointment_id, status, amount_cents, due_date, issued_at, notes, allowed_payment_methods, invoice_access_token)
-     VALUES (?, ?, ?, 'sent', ?, ?, datetime('now'), ?, ?, ?)`
-  ).bind(invoiceId, customerId, b.appointment_id || null, amount, b.due_date || null, b.notes || "", allowedMethods, invoiceToken).run();
-
-  for (const item of b.items) {
-    await env.DB.prepare(
-      "INSERT INTO invoice_items (id, invoice_id, description, quantity, unit_price_cents) VALUES (?, ?, ?, ?, ?)"
-    ).bind(crypto.randomUUID(), invoiceId, item.description, item.quantity, item.unit_price_cents).run();
-  }
-
-  return await json({ id: invoiceId, invoice_token: invoiceToken }, 200, cors);
-}
-
-async function adminUpdateInvoice(request, env, cors, id) {
-  const b = await request.json();
-  const fields = [];
-  const values = [];
-  if (b.status) {
-    fields.push("status = ?");
-    values.push(b.status);
-    if (b.status === "paid") { fields.push("paid_at = datetime('now')"); }
-  }
-  if (b.payment_provider) { fields.push("payment_provider = ?"); values.push(b.payment_provider); }
-  if (b.payment_reference) { fields.push("payment_reference = ?"); values.push(b.payment_reference); }
-  if (b.allowed_payment_methods !== undefined) {
-    fields.push("allowed_payment_methods = ?");
-    values.push(Array.isArray(b.allowed_payment_methods) ? b.allowed_payment_methods.join(",") : b.allowed_payment_methods);
-  }
-  if (b.notes !== undefined) { fields.push("notes = ?"); values.push(b.notes); }
-  if (!fields.length) return await json({ error: "Nothing to update" }, 400, cors);
-  values.push(id);
-  await env.DB.prepare(`UPDATE invoices SET ${fields.join(", ")} WHERE id = ?`).bind(...values).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-// ============================================================================
-// Admin: availability & blocked dates
-// ============================================================================
-
-async function adminListAvailability(env, cors) {
-  const { results } = await env.DB.prepare("SELECT * FROM availability ORDER BY weekday, start_time").all();
-  return await json({ availability: results }, 200, cors);
-}
-
-async function adminAddAvailability(request, env, cors) {
-  const b = await request.json();
-  const id = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO availability (id, weekday, start_time, end_time) VALUES (?, ?, ?, ?)")
-    .bind(id, b.weekday, b.start_time, b.end_time).run();
-  return await json({ id }, 200, cors);
-}
-
-async function adminDeleteAvailability(env, cors, id) {
-  await env.DB.prepare("DELETE FROM availability WHERE id = ?").bind(id).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-async function adminListBlockedDates(env, cors) {
-  const { results } = await env.DB.prepare("SELECT * FROM blocked_dates ORDER BY date").all();
-  return await json({ blocked_dates: results }, 200, cors);
-}
-
-async function adminAddBlockedDate(request, env, cors) {
-  const b = await request.json();
-  const id = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO blocked_dates (id, date, reason) VALUES (?, ?, ?)").bind(id, b.date, b.reason || "").run();
-  return await json({ id }, 200, cors);
-}
-
-async function adminDeleteBlockedDate(env, cors, id) {
-  await env.DB.prepare("DELETE FROM blocked_dates WHERE id = ?").bind(id).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-// ============================================================================
-// Admin: customer search (used when creating an invoice)
-// ============================================================================
-
-async function adminSearchCustomers(request, env, cors) {
-  const url = new URL(request.url);
-  const q = `%${url.searchParams.get("q") || ""}%`;
-  const { results } = await env.DB.prepare(
-    "SELECT id, name, email, phone FROM customers WHERE name LIKE ? OR email LIKE ? ORDER BY name LIMIT 20"
-  ).bind(q, q).all();
-  return await json({ customers: results }, 200, cors);
-}
-
-// ============================================================================
-// Payment settings
-// ============================================================================
-
-async function adminGetPaymentSettings(env, cors) {
-  const row = await env.DB.prepare("SELECT * FROM payment_settings WHERE id = 'default'").first();
-  return await json({ settings: row }, 200, cors);
-}
-
-async function adminUpdatePaymentSettings(request, env, cors) {
-  const b = await request.json();
-  await env.DB.prepare(
-    `UPDATE payment_settings SET
-       stripe_enabled = ?, paypal_enabled = ?, zelle_enabled = ?, venmo_enabled = ?,
-       zelle_instructions = ?, venmo_instructions = ?, stripe_publishable_key = ?, paypal_client_id = ?,
-       updated_at = datetime('now')
-     WHERE id = 'default'`
-  ).bind(
-    b.stripe_enabled ? 1 : 0, b.paypal_enabled ? 1 : 0, b.zelle_enabled ? 1 : 0, b.venmo_enabled ? 1 : 0,
-    b.zelle_instructions || "", b.venmo_instructions || "", b.stripe_publishable_key || "", b.paypal_client_id || ""
-  ).run();
-  return await json({ ok: true }, 200, cors);
-}
-
-async function apiPaymentSettings(env, cors) {
-  const row = await env.DB.prepare(
-    "SELECT stripe_enabled, paypal_enabled, zelle_enabled, venmo_enabled, zelle_instructions, venmo_instructions FROM payment_settings WHERE id = 'default'"
-  ).first();
-  return await json({ settings: row }, 200, cors);
-}
-
-// ============================================================================
-// Site settings (default Zoom link)
-// ============================================================================
-
-async function adminGetSiteSettings(env, cors) {
-  const row = await env.DB.prepare("SELECT * FROM site_settings WHERE id = 'default'").first();
-  return await json({ settings: row }, 200, cors);
-}
-
-async function adminUpdateSiteSettings(request, env, cors) {
-  const b = await request.json();
-  await env.DB.prepare("UPDATE site_settings SET default_zoom_link = ?, updated_at = datetime('now') WHERE id = 'default'")
-    .bind(b.default_zoom_link || "").run();
-  return await json({ ok: true }, 200, cors);
-}
-
-async function getDefaultZoomLink(env) {
-  const row = await env.DB.prepare("SELECT default_zoom_link FROM site_settings WHERE id = 'default'").first();
-  return row?.default_zoom_link || null;
-}
-
-async function getEnabledPaymentMethods(env) {
-  const row = await env.DB.prepare(
-    "SELECT stripe_enabled, paypal_enabled, zelle_enabled, venmo_enabled FROM payment_settings WHERE id = 'default'"
-  ).first();
-  const methods = [];
-  if (row?.stripe_enabled) methods.push("stripe");
-  if (row?.paypal_enabled) methods.push("paypal");
-  if (row?.zelle_enabled) methods.push("zelle");
-  if (row?.venmo_enabled) methods.push("venmo");
-  return methods;
-}
-
-// ============================================================================
-// Required documents (DocuSeal)
-// ============================================================================
-
-async function adminListDocuments(env, cors) {
-  const { results } = await env.DB.prepare("SELECT * FROM required_documents ORDER BY sort_order, name").all();
-  return json({ documents: results }, 200, cors);
-}
-
-async function adminCreateDocument(request, env, cors) {
-  const b = await request.json();
-  if (!b.name || !b.docuseal_template_id) return json({ error: "Name and DocuSeal template ID are required." }, 400, cors);
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    "INSERT INTO required_documents (id, name, docuseal_template_id, active, sort_order) VALUES (?, ?, ?, ?, ?)"
-  ).bind(id, b.name, b.docuseal_template_id, b.active === false ? 0 : 1, b.sort_order || 0).run();
-  return json({ id }, 200, cors);
-}
-
-async function adminUpdateDocument(request, env, cors, id) {
-  const b = await request.json();
-  await env.DB.prepare(
-    "UPDATE required_documents SET name = ?, docuseal_template_id = ?, active = ? WHERE id = ?"
-  ).bind(b.name, b.docuseal_template_id, b.active ? 1 : 0, id).run();
-  return json({ ok: true }, 200, cors);
-}
-
-async function adminDeleteDocument(env, cors, id) {
-  await env.DB.prepare("DELETE FROM customer_document_status WHERE document_id = ?").bind(id).run();
-  await env.DB.prepare("DELETE FROM required_documents WHERE id = ?").bind(id).run();
-  return json({ ok: true }, 200, cors);
-}
-
-async function adminListCustomersFull(env, cors) {
-  const { results: customers } = await env.DB.prepare(
-    "SELECT id, name, email, phone, auth_provider FROM customers ORDER BY name"
-  ).all();
-  const { results: docs } = await env.DB.prepare("SELECT * FROM required_documents WHERE active = 1 ORDER BY sort_order, name").all();
-  const { results: statuses } = await env.DB.prepare("SELECT * FROM customer_document_status").all();
-
-  const statusesByCustomer = {};
-  for (const s of statuses) {
-    if (!statusesByCustomer[s.customer_id]) statusesByCustomer[s.customer_id] = {};
-    statusesByCustomer[s.customer_id][s.document_id] = s;
-  }
-
-  const enriched = customers.map((c) => ({
-    ...c,
-    documents: docs.map((d) => ({
-      document_id: d.id,
-      name: d.name,
-      status: statusesByCustomer[c.id]?.[d.id]?.status || "pending",
-    })),
-  }));
-
-  return json({ customers: enriched }, 200, cors);
-}
-
-async function adminSetCustomerDocumentStatus(request, env, cors) {
-  const b = await request.json();
-  if (!b.customer_id || !b.document_id || !b.status) return json({ error: "customer_id, document_id, and status are required." }, 400, cors);
-
-  const existing = await env.DB.prepare(
-    "SELECT id FROM customer_document_status WHERE customer_id = ? AND document_id = ?"
-  ).bind(b.customer_id, b.document_id).first();
-
-  if (existing) {
-    await env.DB.prepare(
-      "UPDATE customer_document_status SET status = ?, completed_at = ? WHERE id = ?"
-    ).bind(b.status, b.status === "completed" ? new Date().toISOString() : null, existing.id).run();
-  } else {
-    await env.DB.prepare(
-      "INSERT INTO customer_document_status (id, customer_id, document_id, status, completed_at) VALUES (?, ?, ?, ?, ?)"
-    ).bind(crypto.randomUUID(), b.customer_id, b.document_id, b.status, b.status === "completed" ? new Date().toISOString() : null).run();
-  }
-
-  return json({ ok: true }, 200, cors);
-}
-
-// Creates (or reuses) a DocuSeal submission for every active required document
-// this customer hasn't already been sent. Called right after someone books.
-async function ensureDocumentsSent(env, customer) {
-  if (!env.DOCUSEAL_API_KEY) return;
-  try {
-    const { results: docs } = await env.DB.prepare("SELECT * FROM required_documents WHERE active = 1").all();
-    for (const doc of docs) {
-      const existing = await env.DB.prepare(
-        "SELECT id FROM customer_document_status WHERE customer_id = ? AND document_id = ?"
-      ).bind(customer.id, doc.id).first();
-      if (existing) continue; // already sent (or manually set) — don't re-send
-
-      const base = env.DOCUSEAL_API_BASE || "https://api.docuseal.com";
-      const res = await fetch(`${base}/submissions`, {
-        method: "POST",
-        headers: { "X-Auth-Token": env.DOCUSEAL_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template_id: doc.docuseal_template_id,
-          send_email: true,
-          submitters: [{ email: customer.email, name: customer.name }],
-        }),
-      });
-      if (!res.ok) continue; // don't let a DocuSeal hiccup block booking
-      const data = await res.json();
-      const submitter = Array.isArray(data) ? data[0] : data.submitters?.[0];
-
-      await env.DB.prepare(
-        `INSERT INTO customer_document_status (id, customer_id, document_id, status, docuseal_submission_id, signing_url)
-         VALUES (?, ?, ?, 'sent', ?, ?)`
-      ).bind(
-        crypto.randomUUID(), customer.id, doc.id,
-        String(submitter?.submission_id || submitter?.id || ""), submitter?.embed_src || submitter?.slug_url || ""
-      ).run();
-    }
-  } catch (err) {
-    // Best-effort — never block a booking over DocuSeal being unreachable.
+    document.getElementById("signed-in-view").style.display = "none";
+    document.getElementById("guest-view").style.display = "block";
   }
 }
 
-// DocuSeal calls this when a submitter completes a document.
-async function handleDocusealWebhook(request, env) {
-  try {
-    const body = await request.json();
-    const submissionId = String(body?.data?.submission_id || body?.data?.id || "");
-    const eventType = body?.event_type || "";
-    if (!submissionId || !eventType.includes("completed")) return new Response("ok", { status: 200 });
+async function submitBooking() {
+  showError("");
+  const body = { service_id: selectedService.id };
+  if (selectedSlot) body.start_time = selectedSlot.start_time;
 
-    await env.DB.prepare(
-      "UPDATE customer_document_status SET status = 'completed', completed_at = datetime('now') WHERE docuseal_submission_id = ?"
-    ).bind(submissionId).run();
+  const creditCheckbox = document.getElementById("use-credit-checkbox");
+  if (creditCheckbox && creditCheckbox.checked) body.use_credit = true;
 
-    return new Response("ok", { status: 200 });
-  } catch (err) {
-    return new Response("ok", { status: 200 }); // always 200 so DocuSeal doesn't retry-storm on our bugs
-  }
-}
-
-// Returns whether a customer has completed every active required document,
-// plus the per-document detail (used to show "sign now" links).
-async function getCustomerDocumentStatus(env, customerId) {
-  const { results: docs } = await env.DB.prepare("SELECT * FROM required_documents WHERE active = 1 ORDER BY sort_order, name").all();
-  if (!docs.length) return { allComplete: true, documents: [] };
-
-  const { results: statuses } = await env.DB.prepare(
-    "SELECT * FROM customer_document_status WHERE customer_id = ?"
-  ).bind(customerId).all();
-  const byDoc = Object.fromEntries(statuses.map((s) => [s.document_id, s]));
-
-  const documents = docs.map((d) => ({
-    name: d.name,
-    status: byDoc[d.id]?.status || "pending",
-    signing_url: byDoc[d.id]?.signing_url || null,
-  }));
-  const allComplete = documents.every((d) => d.status === "completed");
-
-  return { allComplete, documents };
-}
-
-async function apiMyDocuments(request, env, cors) {
-  const sessionId = getCookie(request, "session");
-  if (!sessionId) return json({ documents: [], allComplete: true }, 200, cors);
-  const session = await env.DB.prepare("SELECT customer_id FROM customer_sessions WHERE id = ? AND expires_at > datetime('now')").bind(sessionId).first();
-  if (!session) return json({ documents: [], allComplete: true }, 200, cors);
-
-  const result = await getCustomerDocumentStatus(env, session.customer_id);
-  return json(result, 200, cors);
-}
-
-// ============================================================================
-// Auto-invoicing, PDF generation, and email — used right after a booking
-// ============================================================================
-
-async function createAutoInvoice(env, { customerId, appointmentId, items }) {
-  const amount = items.reduce((sum, it) => sum + it.quantity * it.unit_price_cents, 0);
-  const invoiceId = crypto.randomUUID();
-  const invoiceToken = crypto.randomUUID();
-  const methods = await getEnabledPaymentMethods(env);
-
-  await env.DB.prepare(
-    `INSERT INTO invoices (id, customer_id, appointment_id, status, amount_cents, issued_at, allowed_payment_methods, invoice_access_token)
-     VALUES (?, ?, ?, 'sent', ?, datetime('now'), ?, ?)`
-  ).bind(invoiceId, customerId, appointmentId, amount, methods.join(","), invoiceToken).run();
-
-  for (const item of items) {
-    await env.DB.prepare(
-      "INSERT INTO invoice_items (id, invoice_id, description, quantity, unit_price_cents) VALUES (?, ?, ?, ?, ?)"
-    ).bind(crypto.randomUUID(), invoiceId, item.description, item.quantity, item.unit_price_cents).run();
+  if (!currentCustomer) {
+    const name = document.getElementById("g-name").value.trim();
+    const email = document.getElementById("g-email").value.trim();
+    const phone = document.getElementById("g-phone").value.trim();
+    if (!name || !email) { showError("Please enter your name and email."); return; }
+    body.guest = { name, email, phone };
   }
 
-  return {
-    id: invoiceId,
-    invoice_access_token: invoiceToken,
-    amount_cents: amount,
-    status: "sent",
-    allowed_payment_methods: methods.join(","),
-    due_date: null,
-    notes: "",
-    items,
-  };
-}
-
-// Sends the booking confirmation + invoice PDF. Never throws — a failed email
-// should never prevent a booking from succeeding.
-async function sendInvoiceEmailSafely(env, customer, invoice, zoomLink, documents) {
-  try {
-    if (!env.RESEND_API_KEY) return;
-
-    const methods = (invoice.allowed_payment_methods || "").split(",").filter(Boolean);
-    const settings = await env.DB.prepare(
-      "SELECT zelle_instructions, venmo_instructions FROM payment_settings WHERE id = 'default'"
-    ).first();
-
-    const payUrl = `${env.SITE_URL}/invoice.html?token=${invoice.invoice_access_token}`;
-    const paymentLines = [];
-    if (methods.includes("zelle") && settings?.zelle_instructions) paymentLines.push(`Zelle: ${settings.zelle_instructions}`);
-    if (methods.includes("venmo") && settings?.venmo_instructions) paymentLines.push(`Venmo: ${settings.venmo_instructions}`);
-
-    const pendingDocs = (documents || []).filter((d) => d.status !== "completed");
-    const docsText = pendingDocs.length
-      ? `\nBefore your session: please complete these documents (or fill them out and email to hello@joyfullypresent.life). Your Zoom link won't be available until they're done:\n${pendingDocs.map((d) => `- ${d.name}${d.signing_url ? `: ${d.signing_url}` : ""}`).join("\n")}\n`
-      : "";
-    const docsHtml = pendingDocs.length
-      ? `<p><strong>Before your session</strong>, please complete these documents (or fill them out and email to hello@joyfullypresent.life). Your Zoom link won't be available until they're done:</p><ul>${pendingDocs.map((d) => `<li>${escapeHtml(d.name)}${d.signing_url ? ` — <a href="${d.signing_url}">Sign here</a>` : ""}</li>`).join("")}</ul>`
-      : "";
-
-    const pdf = buildInvoicePdf({
-      invoiceNumber: invoice.id.slice(0, 8).toUpperCase(),
-      issuedDate: new Date().toLocaleDateString("en-US"),
-      dueDate: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString("en-US") : null,
-      customerName: customer.name,
-      customerEmail: customer.email,
-      items: invoice.items,
-      totalCents: invoice.amount_cents,
-      status: invoice.status,
-      paymentLines,
-      payUrl,
-      zoomLink,
-      notes: invoice.notes || "",
-      footerLine: "Joyfully Present Life Coaching LLC · 440 N Barranca Ave #9885, Covina, CA 91723 · hello@joyfullypresent.life",
-    });
-    const pdfBase64 = btoa(pdf);
-
-    const itemsList = invoice.items
-      .map((it) => `- ${it.description}${it.quantity > 1 ? ` (x${it.quantity})` : ""}: $${((it.quantity * it.unit_price_cents) / 100).toFixed(2)}`)
-      .join("\n");
-    const total = (invoice.amount_cents / 100).toFixed(2);
-    const paymentText = paymentLines.length ? `\n${paymentLines.join("\n")}\n` : "";
-
-    const text = `Hi ${customer.name},
-
-Thanks for booking with Joyfully Present Life Coaching!
-
-${itemsList}
-
-Total: $${total}
-${zoomLink ? `\nJoin your session here: ${zoomLink} (Passcode: Joyfully)\n` : ""}${paymentText}
-View or pay your invoice: ${payUrl}
-${docsText}
-Your invoice is attached as a PDF.
-
-Warmly,
-Joyfully Present Life Coaching LLC`;
-
-    const html = `<p>Hi ${escapeHtml(customer.name)},</p>
-<p>Thanks for booking with Joyfully Present Life Coaching!</p>
-<p style="white-space:pre-wrap;">${escapeHtml(itemsList)}</p>
-<p><strong>Total: $${total}</strong></p>
-${zoomLink ? `<p><a href="${zoomLink}">Join your session here</a> &mdash; Passcode: <strong>Joyfully</strong></p>` : ""}
-${paymentLines.length ? `<p style="white-space:pre-wrap;">${escapeHtml(paymentLines.join("\n"))}</p>` : ""}
-<p><a href="${payUrl}">View or pay your invoice</a></p>
-${docsHtml}
-<p>Your invoice is attached as a PDF.</p>
-<p>Warmly,<br>Joyfully Present Life Coaching LLC</p>`;
-
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Joyfully Present Life Coaching <invoices@mail.joyfullypresent.life>",
-        to: customer.email,
-        subject: "Your invoice from Joyfully Present Life Coaching",
-        text,
-        html,
-        attachments: [{ filename: `invoice-${invoice.id.slice(0, 8)}.pdf`, content: pdfBase64 }],
-      }),
-    });
-  } catch (err) {
-    // Swallow errors — booking already succeeded, email is best-effort.
-  }
-}
-
-// Sent when a bundle credit is used to book a session (no invoice needed, already paid for).
-async function sendConfirmationEmailSafely(env, customer, service, startDate, zoomLink, documents) {
-  try {
-    if (!env.RESEND_API_KEY) return;
-    const when = formatLA(startDate);
-    const pendingDocs = (documents || []).filter((d) => d.status !== "completed");
-    const docsText = pendingDocs.length
-      ? `\nBefore your session: please complete these documents (or fill them out and email to hello@joyfullypresent.life). Your Zoom link won't be available until they're done:\n${pendingDocs.map((d) => `- ${d.name}${d.signing_url ? `: ${d.signing_url}` : ""}`).join("\n")}\n`
-      : "";
-    const text = `Hi ${customer.name},
-
-You're booked for ${service.name} on ${when}, using one of your session credits.
-${zoomLink ? `\nJoin your session here: ${zoomLink} (Passcode: Joyfully)\n` : ""}${docsText}
-Warmly,
-Joyfully Present Life Coaching LLC`;
-
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Joyfully Present Life Coaching <invoices@mail.joyfullypresent.life>",
-        to: customer.email,
-        subject: `You're booked: ${service.name}`,
-        text,
-      }),
-    });
-  } catch (err) {
-    // Best-effort — never block a booking over email failing.
-  }
-}
-
-// Lets you know about new bookings/purchases without checking the admin portal.
-async function sendAdminNotification(env, subject, text) {
-  try {
-    if (!env.RESEND_API_KEY) return;
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Joyfully Present Bookings <bookings@mail.joyfullypresent.life>",
-        to: "hello@joyfullypresent.life",
-        subject,
-        text,
-      }),
-    });
-  } catch (err) {
-    // Best-effort — never block a booking over a notification failing.
-  }
-}
-
-// Sent by the scheduled job ~15 minutes before a session starts.
-async function sendReminderEmailSafely(env, customer, appointment, docsComplete) {
-  try {
-    if (!env.RESEND_API_KEY) return;
-    const when = formatLA(new Date(appointment.start_time));
-    const zoomLine = docsComplete && appointment.meeting_link
-      ? `\nJoin here: ${appointment.meeting_link} (Passcode: Joyfully)\n`
-      : `\nYour session link is on hold until your intake documents are complete — check your appointment page or email hello@joyfullypresent.life if you're not sure what's outstanding.\n`;
-
-    const text = `Hi ${customer.name},
-
-Just a heads up — your session (${appointment.service_name}) starts soon, at ${when}.
-${zoomLine}
-See you shortly!
-Joyfully Present Life Coaching`;
-
-    const html = `<p>Hi ${escapeHtml(customer.name)},</p>
-<p>Just a heads up — your session (<strong>${escapeHtml(appointment.service_name)}</strong>) starts soon, at ${when}.</p>
-${docsComplete && appointment.meeting_link
-  ? `<p><a href="${appointment.meeting_link}">Join here</a> &mdash; Passcode: <strong>Joyfully</strong></p>`
-  : `<p>Your session link is on hold until your intake documents are complete — reach out to hello@joyfullypresent.life if you're not sure what's outstanding.</p>`}
-<p>See you shortly!<br>Joyfully Present Life Coaching</p>`;
-
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "Joyfully Present Life Coaching <invoices@mail.joyfullypresent.life>",
-        to: customer.email,
-        subject: `Starting soon: ${appointment.service_name}`,
-        text,
-        html,
-      }),
-    });
-  } catch (err) {
-    // Best-effort.
-  }
-}
-
-function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-// ---------------- PDF drawing helpers (vector shapes + text positioning) ----------------
-
-const HELV = {
-  " ":278,"!":278,'"':355,"#":556,"$":556,"%":889,"&":667,"'":191,"(":333,")":333,
-  "*":389,"+":584,",":278,"-":333,".":278,"/":278,
-  "0":556,"1":556,"2":556,"3":556,"4":556,"5":556,"6":556,"7":556,"8":556,"9":556,
-  ":":278,";":278,"<":584,"=":584,">":584,"?":556,"@":1015,
-  A:667,B:667,C:722,D:722,E:667,F:611,G:778,H:722,I:278,J:500,K:667,L:556,M:833,N:722,O:778,P:667,Q:778,R:722,S:667,T:611,U:722,V:667,W:944,X:667,Y:667,Z:611,
-  "[":278,"\\":278,"]":278,"^":469,_:556,"`":333,
-  a:556,b:556,c:500,d:556,e:556,f:278,g:556,h:556,i:222,j:222,k:500,l:222,m:833,n:556,o:556,p:556,q:556,r:333,s:500,t:278,u:556,v:500,w:722,x:500,y:500,z:500,
-  "{":334,"|":260,"}":334,"~":584,
-};
-
-const HELV_BOLD = {
-  " ":278,"!":333,'"':474,"#":556,"$":556,"%":889,"&":722,"'":238,"(":333,")":333,
-  "*":389,"+":584,",":278,"-":333,".":278,"/":278,
-  "0":556,"1":556,"2":556,"3":556,"4":556,"5":556,"6":556,"7":556,"8":556,"9":556,
-  ":":333,";":333,"<":584,"=":584,">":584,"?":611,"@":975,
-  A:722,B:722,C:722,D:722,E:667,F:611,G:778,H:722,I:278,J:556,K:722,L:611,M:833,N:722,O:778,P:667,Q:778,R:722,S:667,T:611,U:722,V:667,W:944,X:667,Y:667,Z:611,
-  "[":333,"\\":278,"]":333,"^":584,_:556,"`":333,
-  a:556,b:611,c:556,d:611,e:556,f:333,g:611,h:611,i:278,j:278,k:556,l:278,m:889,n:611,o:611,p:611,q:611,r:389,s:556,t:333,u:611,v:556,w:778,x:556,y:556,z:500,
-  "{":389,"|":280,"}":389,"~":584,
-};
-
-function textWidth(str, size, bold) {
-  const table = bold ? HELV_BOLD : HELV;
-  let total = 0;
-  for (const ch of String(str)) total += table[ch] ?? 556;
-  return (total / 1000) * size;
-}
-
-// ============================================================================
-// Unicode normalization — convert common "smart" typography to plain ASCII
-// equivalents *before* falling back to "?" for anything truly unmappable.
-// This is what was causing stray "?" marks (em dashes, and the narrow
-// no-break space some JS date formatters insert before AM/PM).
-// ============================================================================
-
-function normalizeAscii(s) {
-  return String(s ?? "")
-    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")
-    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')
-    .replace(/[\u2013\u2014\u00B7]/g, "-")
-    .replace(/\u2026/g, "...")
-    .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, " ")
-    .replace(/[^\x20-\x7E]/g, "?");
-}
-
-// ============================================================================
-// PDF drawing helpers
-// ============================================================================
-
-function circlePathOps(cx, cy, r) {
-  const k = 0.5522847498;
-  const o = r * k;
-  const n = (v) => Math.round(v * 100) / 100;
-  return [
-    `${n(cx + r)} ${n(cy)} m`,
-    `${n(cx + r)} ${n(cy + o)} ${n(cx + o)} ${n(cy + r)} ${n(cx)} ${n(cy + r)} c`,
-    `${n(cx - o)} ${n(cy + r)} ${n(cx - r)} ${n(cy + o)} ${n(cx - r)} ${n(cy)} c`,
-    `${n(cx - r)} ${n(cy - o)} ${n(cx - o)} ${n(cy - r)} ${n(cx)} ${n(cy - r)} c`,
-    `${n(cx + o)} ${n(cy - r)} ${n(cx + r)} ${n(cy - o)} ${n(cx + r)} ${n(cy)} c`,
-    `h`,
-  ].join("\n");
-}
-
-// A petal: an ellipse elongated along its long axis, offset outward from the
-// flower's center and rotated to point outward — much closer to the real
-// 5-petal logo than plain overlapping circles.
-function petalPathOps(cx, cy, angleRad, length, width) {
-  const k = 0.5522847498;
-  const rx = length / 2, ry = width / 2;
-  const offset = rx * 0.9; // how far the petal's center sits from the flower's center
-  const px = cx + offset * Math.cos(angleRad);
-  const py = cy + offset * Math.sin(angleRad);
-
-  const basePts = [
-    [rx, 0], [rx, k * ry], [k * rx, ry], [0, ry],
-    [-k * rx, ry], [-rx, k * ry], [-rx, 0],
-    [-rx, -k * ry], [-k * rx, -ry], [0, -ry],
-    [k * rx, -ry], [rx, -k * ry], [rx, 0],
-  ];
-  const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
-  const n = (v) => Math.round(v * 100) / 100;
-  const rp = basePts.map(([x, y]) => [n(px + x * cos - y * sin), n(py + x * sin + y * cos)]);
-
-  return [
-    `${rp[0][0]} ${rp[0][1]} m`,
-    `${rp[1][0]} ${rp[1][1]} ${rp[2][0]} ${rp[2][1]} ${rp[3][0]} ${rp[3][1]} c`,
-    `${rp[4][0]} ${rp[4][1]} ${rp[5][0]} ${rp[5][1]} ${rp[6][0]} ${rp[6][1]} c`,
-    `${rp[7][0]} ${rp[7][1]} ${rp[8][0]} ${rp[8][1]} ${rp[9][0]} ${rp[9][1]} c`,
-    `${rp[10][0]} ${rp[10][1]} ${rp[11][0]} ${rp[11][1]} ${rp[12][0]} ${rp[12][1]} c`,
-    `h`,
-  ].join("\n");
-}
-
-function flowerOps(cx, cy, petalLength, petalWidth) {
-  const ops = [];
-  for (let i = 0; i < 5; i++) {
-    const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-    ops.push(petalPathOps(cx, cy, angle, petalLength, petalWidth));
-  }
-  return ops.join("\n");
-}
-
-// ============================================================================
-
-function buildInvoicePdf(d) {
-  function esc(s) {
-    return normalizeAscii(s)
-      .replace(/\\/g, "\\\\")
-      .replace(/\(/g, "\\(")
-      .replace(/\)/g, "\\)");
-  }
-
-  const ops = [];
-  const GREEN = "0.463 0.612 0.373";
-  const PINK = "0.937 0.741 0.741";
-  const INK = "0.16 0.19 0.18";
-  const INK_SOFT = "0.4 0.44 0.43";
-  const PAID_BG = "0.85 0.93 0.86";
-  const PAID_TEXT = "0.13 0.45 0.28";
-  const DUE_BG = "0.98 0.9 0.82";
-  const DUE_TEXT = "0.68 0.4 0.08";
-
-  function text(x, y, str, size, font, colorTriplet) {
-    ops.push(`q`);
-    if (colorTriplet) ops.push(`${colorTriplet} rg`);
-    ops.push(`BT /${font} ${size} Tf ${x} ${y} Td (${esc(str)}) Tj ET`);
-    ops.push(`Q`);
-  }
-  function textRight(rightEdge, y, str, size, font, colorTriplet, bold) {
-    const isBold = bold ?? font === "F2";
-    const x = rightEdge - textWidth(normalizeAscii(str), size, isBold);
-    text(x, y, str, size, font, colorTriplet);
-  }
-  function textCentered(centerX, y, str, size, font, colorTriplet, bold) {
-    const isBold = bold ?? font === "F2";
-    const w = textWidth(normalizeAscii(str), size, isBold);
-    text(centerX - w / 2, y, str, size, font, colorTriplet);
-  }
-  function hLine(x1, y1, x2, y2, colorTriplet, width) {
-    ops.push(`q`);
-    ops.push(`${width || 1} w`);
-    if (colorTriplet) ops.push(`${colorTriplet} RG`);
-    ops.push(`${x1} ${y1} m ${x2} ${y2} l S`);
-    ops.push(`Q`);
-  }
-  function rect(x, y, w, h, colorTriplet) {
-    ops.push(`q`);
-    ops.push(`${colorTriplet} rg`);
-    ops.push(`${x} ${y} ${w} ${h} re f`);
-    ops.push(`Q`);
-  }
-  function filledPath(pathOps, colorTriplet) {
-    ops.push(`q`);
-    ops.push(`${colorTriplet} rg`);
-    ops.push(pathOps);
-    ops.push(`f`);
-    ops.push(`Q`);
-  }
-
-  const pageW = 612;
-  const marginX = 56;
-
-  text(marginX, 742, "INVOICE", 30, "F2", INK);
-
-  const logoCX = 528, logoCY = 752;
-  filledPath(flowerOps(logoCX, logoCY, 22, 11), PINK);
-  textCentered(logoCX, logoCY - 34, "Joyfully Present", 12, "F2", GREEN, true);
-  textCentered(logoCX, logoCY - 48, "Life Coaching", 9, "F1", GREEN);
-
-  let y = 672;
-  text(marginX, y, "ISSUED TO", 8.5, "F2", INK_SOFT);
-  text(marginX, y - 16, d.customerName, 11, "F2", INK);
-  text(marginX, y - 30, d.customerEmail, 10, "F1", INK_SOFT);
-
-  const metaLabelX = 380, metaValueRight = pageW - marginX;
-  text(metaLabelX, y, "INVOICE NO.", 8.5, "F2", INK_SOFT);
-  textRight(metaValueRight, y, d.invoiceNumber, 10, "F1", INK);
-  text(metaLabelX, y - 16, "DATE", 8.5, "F2", INK_SOFT);
-  textRight(metaValueRight, y - 16, d.issuedDate, 10, "F1", INK);
-  if (d.dueDate) {
-    text(metaLabelX, y - 32, "DUE DATE", 8.5, "F2", INK_SOFT);
-    textRight(metaValueRight, y - 32, d.dueDate, 10, "F1", INK);
-  }
-
-  const isPaid = String(d.status).toLowerCase() === "paid";
-  const badgeLabel = isPaid ? "PAID" : "PAYMENT DUE";
-  const badgeW = isPaid ? 50 : 100;
-  rect(marginX, y - 66, badgeW, 20, isPaid ? PAID_BG : DUE_BG);
-  text(marginX + 10, y - 60, badgeLabel, 9.5, "F2", isPaid ? PAID_TEXT : DUE_TEXT);
-
-  let tableY = y - 108;
-  const colDesc = marginX, colQty = 370, colRate = 430, colTotal = pageW - marginX;
-
-  text(colDesc, tableY, "DESCRIPTION", 8.5, "F2", INK_SOFT);
-  text(colQty, tableY, "QTY", 8.5, "F2", INK_SOFT);
-  text(colRate, tableY, "RATE", 8.5, "F2", INK_SOFT);
-  textRight(colTotal, tableY, "TOTAL", 8.5, "F2", INK_SOFT);
-  hLine(marginX, tableY - 8, pageW - marginX, tableY - 8, "0.75 0.75 0.73", 1);
-
-  tableY -= 26;
-  d.items.forEach((it) => {
-    const rate = (it.unit_price_cents / 100).toFixed(2);
-    const total = ((it.quantity * it.unit_price_cents) / 100).toFixed(2);
-    text(colDesc, tableY, it.description, 10.5, "F1", INK);
-    text(colQty, tableY, String(it.quantity), 10.5, "F1", INK);
-    text(colRate, tableY, `$${rate}`, 10.5, "F1", INK);
-    textRight(colTotal, tableY, `$${total}`, 10.5, "F1", INK);
-    tableY -= 22;
-  });
-
-  hLine(marginX, tableY, pageW - marginX, tableY, "0.75 0.75 0.73", 1);
-  tableY -= 24;
-
-  textRight(430, tableY, "TOTAL DUE", 11, "F2", INK, true);
-  textRight(colTotal, tableY, `$${(d.totalCents / 100).toFixed(2)}`, 14, "F2", INK, true);
-
-  let py = tableY - 50;
-  text(marginX, py, "PAYMENT", 8.5, "F2", INK_SOFT);
-  py -= 16;
-
-  if (isPaid) {
-    text(marginX, py, `Paid via ${d.paidVia || "the invoice link"}${d.paidDate ? ` on ${d.paidDate}` : ""}.`, 10, "F1", INK);
-    py -= 16;
-  } else {
-    (d.paymentLines || []).forEach((l) => {
-      text(marginX, py, l, 10, "F1", INK);
-      py -= 15;
-    });
-    if (d.payUrl) {
-      text(marginX, py, `Pay online: ${d.payUrl}`, 10, "F1", GREEN);
-      py -= 15;
-    }
-  }
-
-  if (d.zoomLink) {
-    py -= 8;
-    text(marginX, py, "SESSION LINK", 8.5, "F2", INK_SOFT);
-    py -= 16;
-    text(marginX, py, d.zoomLink, 10, "F1", INK);
-    py -= 15;
-    text(marginX, py, "Passcode: Joyfully", 10, "F1", INK);
-    py -= 16;
-  }
-
-  if (d.notes) {
-    py -= 8;
-    text(marginX, py, "NOTES", 8.5, "F2", INK_SOFT);
-    py -= 16;
-    text(marginX, py, d.notes, 10, "F1", INK);
-  }
-
-  text(marginX, 56, d.footerLine || "", 8.5, "F1", INK_SOFT);
-
-  const contentStream = ops.join("\n");
-
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>",
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-  ];
-
-  let pdf = "%PDF-1.4\n";
-  const offsets = [];
-  objects.forEach((obj, i) => {
-    offsets[i + 1] = pdf.length;
-    pdf += `${i + 1} 0 obj\n${obj}\nendobj\n`;
-  });
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (let i = 1; i <= objects.length; i++) {
-    pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
-  }
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return pdf;
-}
-
-// ============================================================================
-// Public: invoice viewing + paying
-// ============================================================================
-
-async function apiGetInvoice(request, env, cors) {
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  if (!token) return await json({ error: "Missing token" }, 400, cors);
-
-  const invoice = await env.DB.prepare(
-    `SELECT i.*, c.name AS customer_name, c.email AS customer_email
-     FROM invoices i JOIN customers c ON c.id = i.customer_id WHERE i.invoice_access_token = ?`
-  ).bind(token).first();
-  if (!invoice) return await json({ error: "Invoice not found" }, 404, cors);
-
-  const { results: items } = await env.DB.prepare("SELECT * FROM invoice_items WHERE invoice_id = ?").bind(invoice.id).all();
-  const settings = await env.DB.prepare(
-    "SELECT stripe_enabled, paypal_enabled, zelle_enabled, venmo_enabled, zelle_instructions, venmo_instructions FROM payment_settings WHERE id = 'default'"
-  ).first();
-
-  return await json({ invoice, items, settings }, 200, cors);
-}
-
-async function apiPayInvoiceStripe(request, env, cors, invoiceId) {
-  const b = await request.json();
-  const invoice = await env.DB.prepare("SELECT * FROM invoices WHERE id = ? AND invoice_access_token = ?").bind(invoiceId, b.token || "").first();
-  if (!invoice) return await json({ error: "Invoice not found" }, 404, cors);
-  if (invoice.status === "paid") return await json({ error: "This invoice is already paid." }, 400, cors);
-
-  const params = new URLSearchParams({
-    mode: "payment",
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][product_data][name]": `Joyfully Present — Invoice`,
-    "line_items[0][price_data][unit_amount]": String(invoice.amount_cents),
-    "line_items[0][quantity]": "1",
-    success_url: `${env.SITE_URL}/invoice.html?token=${invoice.invoice_access_token}&paid=1`,
-    cancel_url: `${env.SITE_URL}/invoice.html?token=${invoice.invoice_access_token}`,
-    "metadata[invoice_id]": invoice.id,
-  });
-
-  const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+  const res = await fetch(`${API_BASE}/api/book`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
-  });
-  const session = await res.json();
-  if (!res.ok) return await json({ error: session.error?.message || "Could not start checkout." }, 500, cors);
-
-  return await json({ url: session.url }, 200, cors);
-}
-
-async function apiPaypalCreateOrder(request, env, cors, invoiceId) {
-  const b = await request.json();
-  const invoice = await env.DB.prepare("SELECT * FROM invoices WHERE id = ? AND invoice_access_token = ?").bind(invoiceId, b.token || "").first();
-  if (!invoice) return await json({ error: "Invoice not found" }, 404, cors);
-  if (invoice.status === "paid") return await json({ error: "This invoice is already paid." }, 400, cors);
-
-  const accessToken = await paypalAccessToken(env);
-  const res = await fetch(`${paypalBase(env)}/v2/checkout/orders`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [{ custom_id: invoice.id, amount: { currency_code: "USD", value: (invoice.amount_cents / 100).toFixed(2) } }],
-    }),
-  });
-  const order = await res.json();
-  if (!res.ok) return await json({ error: "Could not start PayPal order." }, 500, cors);
-  return await json({ order_id: order.id }, 200, cors);
-}
-
-async function apiPaypalCaptureOrder(request, env, cors, invoiceId) {
-  const b = await request.json();
-  const invoice = await env.DB.prepare("SELECT * FROM invoices WHERE id = ? AND invoice_access_token = ?").bind(invoiceId, b.token || "").first();
-  if (!invoice) return await json({ error: "Invoice not found" }, 404, cors);
-
-  const accessToken = await paypalAccessToken(env);
-  const res = await fetch(`${paypalBase(env)}/v2/checkout/orders/${b.order_id}/capture`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-  });
-  const capture = await res.json();
-  if (!res.ok || capture.status !== "COMPLETED") return await json({ error: "Payment could not be captured." }, 500, cors);
-
-  await env.DB.prepare(
-    "UPDATE invoices SET status = 'paid', paid_at = datetime('now'), payment_provider = 'paypal', payment_reference = ? WHERE id = ?"
-  ).bind(b.order_id, invoice.id).run();
-
-  return await json({ ok: true }, 200, cors);
-}
-
-async function paypalAccessToken(env) {
-  const creds = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
-  const res = await fetch(`${paypalBase(env)}/v1/oauth2/token`, {
-    method: "POST",
-    headers: { Authorization: `Basic ${creds}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: "grant_type=client_credentials",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
   const data = await res.json();
-  return data.access_token;
-}
 
-function paypalBase(env) {
-  return env.PAYPAL_ENV === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
-}
+  if (!res.ok) { showError(data.error || "Something went wrong — please try again."); return; }
 
-// ============================================================================
-// Stripe webhook — confirms payment server-side even if the customer closes
-// the tab before the success redirect fires.
-// ============================================================================
-
-async function handleStripeWebhook(request, env) {
-  const rawBody = await request.text();
-  const signatureHeader = request.headers.get("Stripe-Signature") || "";
-  const valid = await verifyStripeSignature(rawBody, signatureHeader, env.STRIPE_WEBHOOK_SECRET);
-  if (!valid) return new Response("Invalid signature", { status: 400 });
-
-  const event = JSON.parse(rawBody);
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const invoiceId = session.metadata?.invoice_id;
-    if (invoiceId) {
-      await env.DB.prepare(
-        "UPDATE invoices SET status = 'paid', paid_at = datetime('now'), payment_provider = 'stripe', payment_reference = ? WHERE id = ?"
-      ).bind(session.id, invoiceId).run();
-    }
+  if (data.package) {
+    document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.sessions_granted} sessions added to your account`;
+  } else {
+    document.getElementById("confirm-summary").textContent = data.used_credit
+      ? `${data.service_name} — ${data.label} (using a session credit)`
+      : `${data.service_name} — ${data.label}`;
   }
 
-  return new Response("ok", { status: 200 });
+  if (data.guest_token) {
+    document.getElementById("confirm-token-note").style.display = "block";
+    document.getElementById("confirm-token-note").innerHTML =
+      `Bookmark this link to view or cancel your appointment: <br><a href="appointment.html?token=${data.guest_token}">${location.origin}/appointment.html?token=${data.guest_token}</a>`;
+  } else if (data.invoice_token) {
+    document.getElementById("confirm-token-note").style.display = "block";
+    document.getElementById("confirm-token-note").innerHTML =
+      `A confirmation email with your invoice is on its way. You can also <a href="invoice.html?token=${data.invoice_token}">view or pay it here</a>.`;
+  }
+
+  const pendingDocs = (data.documents || []).filter((d) => d.status !== "completed");
+  if (pendingDocs.length) {
+    const docsEl = document.getElementById("confirm-docs-note");
+    docsEl.style.display = "block";
+    docsEl.innerHTML = `
+      <div class="signed-in-box">
+        <strong>Before your session</strong>, please complete these documents (or fill them out and email to hello@joyfullypresent.life). Your Zoom link won't be available until they're done:
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+          ${pendingDocs.map((d) => d.signing_url
+            ? `<a href="${d.signing_url}" target="_blank" class="btn-small" style="width:fit-content;">Sign: ${d.name}</a>`
+            : `<span class="small-note">${d.name} — pending</span>`
+          ).join("")}
+        </div>
+      </div>`;
+  }
+
+  goToStep(4);
 }
 
-async function verifyStripeSignature(rawBody, signatureHeader, secret) {
-  const parts = Object.fromEntries(signatureHeader.split(",").map((p) => p.split("=")));
-  if (!parts.t || !parts.v1) return false;
-
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signatureBytes = await crypto.subtle.sign("HMAC", key, enc.encode(`${parts.t}.${rawBody}`));
-  const expected = bytesToHex(new Uint8Array(signatureBytes));
-
-  return expected === parts.v1;
+// Safety net: if an sso_ticket ever lands directly on this page instead of
+// being resolved server-side, forward it to finish the exchange.
+const incomingTicket = new URLSearchParams(location.search).get("sso_ticket");
+if (incomingTicket) {
+  location.href = `${API_BASE}/auth/sso/callback?sso_ticket=${incomingTicket}`;
+} else {
+  loadServices();
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function getCookie(request, name) {
-  const cookieHeader = request.headers.get("Cookie") || "";
-  const match = cookieHeader.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+// If arriving back from Google sign-in with a service pre-selected, jump to step 3 once loaded.
+if (preselectServiceId) {
+  checkSignedIn();
 }
+</script>
 
-function json(data, status, headers) {
-  return new Response(JSON.stringify(data), { status, headers: { ...headers, "Content-Type": "application/json" } });
-}
-
-function redirectWithMessage(env, message) {
-  const headers = new Headers();
-  headers.set("Location", `${env.SITE_URL}/services.html?auth_error=${encodeURIComponent(message)}`);
-  return new Response(null, { status: 302, headers });
-}
-
-// Converts a business-timezone (America/Los_Angeles) date + "HH:MM" time into a UTC Date,
-// correctly accounting for daylight saving time.
-function laToUTC(dateStr, timeStr) {
-  const naive = new Date(`${dateStr}T${timeStr}:00Z`);
-  const laString = naive.toLocaleString("en-US", { timeZone: BUSINESS_TZ });
-  const laDate = new Date(laString);
-  const diff = naive.getTime() - laDate.getTime();
-  return new Date(naive.getTime() + diff);
-}
-
-function formatLA(date) {
-  return date.toLocaleString("en-US", {
-    timeZone: BUSINESS_TZ, weekday: "short", month: "short", day: "numeric",
-    hour: "numeric", minute: "2-digit",
-  });
-}
-
-async function hashPassword(password, saltHex) {
-  const enc = new TextEncoder();
-  const salt = saltHex ? hexToBytes(saltHex) : crypto.getRandomValues(new Uint8Array(16));
-  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
-  return { hash: bytesToHex(new Uint8Array(bits)), salt: bytesToHex(salt) };
-}
-
-function bytesToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-  return bytes;
-}
+</body>
+</html>
