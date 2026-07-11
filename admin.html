@@ -35,6 +35,8 @@
     <button class="tab-btn" data-tab="invoices">Invoices</button>
     <button class="tab-btn" data-tab="availability">Availability</button>
     <button class="tab-btn" data-tab="payments">Payment Settings</button>
+    <button class="tab-btn" data-tab="documents">Documents</button>
+    <button class="tab-btn" data-tab="customers">Customers</button>
   </div>
 
   <!-- ===================== SERVICES ===================== -->
@@ -157,6 +159,39 @@
     </div>
   </div>
 
+  <!-- ===================== DOCUMENTS ===================== -->
+  <div class="tab-panel" id="tab-documents">
+    <div class="section-title-row"><h2 style="margin:0;">Required Documents</h2></div>
+    <p class="small-note">Add each document customers must complete via DocuSeal (intake forms, waivers, consent, etc). Every new customer is automatically sent all active documents when they first book. Get the Template ID from your DocuSeal dashboard.</p>
+
+    <div class="inline-form" id="doc-form">
+      <div class="form-group"><label>Document Name</label><input type="text" id="doc-name" placeholder="e.g. Intake Form"></div>
+      <div class="form-group"><label>DocuSeal Template ID</label><input type="text" id="doc-template-id"></div>
+      <div class="form-group"><label>Active</label><input type="checkbox" id="doc-active" checked style="width:auto;"></div>
+      <button class="btn btn-primary" id="doc-save-btn" onclick="saveDocument()">Add Document</button>
+      <button class="btn-small" id="doc-cancel-btn" style="display:none;" onclick="resetDocumentForm()">Cancel Edit</button>
+    </div>
+
+    <div class="table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>Name</th><th>Template ID</th><th>Active</th><th></th></tr></thead>
+        <tbody id="documents-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== CUSTOMERS ===================== -->
+  <div class="tab-panel" id="tab-customers">
+    <div class="section-title-row"><h2 style="margin:0;">Customers</h2></div>
+    <p class="small-note">Manually mark a document complete if you received it another way (e.g. emailed to hello@joyfullypresent.life) instead of through DocuSeal.</p>
+    <div class="table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>Customer</th><th>Documents</th></tr></thead>
+        <tbody id="customers-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <div class="admin-shell" id="login-prompt" style="display:none; text-align:center;">
@@ -199,6 +234,8 @@ async function init() {
   loadBlockedDates();
   loadPaymentSettings();
   loadSiteSettings();
+  loadDocuments();
+  loadCustomers();
   addInvoiceItemRow();
 }
 
@@ -589,6 +626,110 @@ async function savePaymentSettings() {
   });
   loadPaymentSettingsForInvoiceForm();
   alert("Payment settings saved.");
+}
+
+// ==================== DOCUMENTS ====================
+
+let editingDocumentId = null;
+
+async function loadDocuments() {
+  const res = await fetch(`${API_BASE}/admin/documents`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("documents-tbody");
+  tbody.innerHTML = "";
+  data.documents.forEach((d) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d.name}</td>
+      <td>${d.docuseal_template_id}</td>
+      <td>${d.active ? "Yes" : "No"}</td>
+      <td>
+        <button class="btn-small" data-edit="${d.id}">Edit</button>
+        <button class="btn-small danger" data-delete="${d.id}">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("[data-edit]").addEventListener("click", () => editDocument(d));
+    tr.querySelector("[data-delete]").addEventListener("click", () => deleteDocument(d.id));
+  });
+}
+
+function editDocument(d) {
+  editingDocumentId = d.id;
+  document.getElementById("doc-name").value = d.name;
+  document.getElementById("doc-template-id").value = d.docuseal_template_id;
+  document.getElementById("doc-active").checked = !!d.active;
+  document.getElementById("doc-save-btn").textContent = "Save Changes";
+  document.getElementById("doc-cancel-btn").style.display = "inline-block";
+}
+
+function resetDocumentForm() {
+  editingDocumentId = null;
+  document.getElementById("doc-name").value = "";
+  document.getElementById("doc-template-id").value = "";
+  document.getElementById("doc-active").checked = true;
+  document.getElementById("doc-save-btn").textContent = "Add Document";
+  document.getElementById("doc-cancel-btn").style.display = "none";
+}
+
+async function saveDocument() {
+  const body = {
+    name: document.getElementById("doc-name").value.trim(),
+    docuseal_template_id: document.getElementById("doc-template-id").value.trim(),
+    active: document.getElementById("doc-active").checked,
+  };
+  if (!body.name || !body.docuseal_template_id) { alert("Please enter a name and DocuSeal template ID."); return; }
+
+  if (editingDocumentId) {
+    await fetch(`${API_BASE}/admin/documents/${editingDocumentId}`, {
+      method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  } else {
+    await fetch(`${API_BASE}/admin/documents`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  }
+  resetDocumentForm();
+  loadDocuments();
+}
+
+async function deleteDocument(id) {
+  if (!confirm("Delete this document? Customers will no longer need to complete it.")) return;
+  await fetch(`${API_BASE}/admin/documents/${id}`, { method: "DELETE", credentials: "include" });
+  loadDocuments();
+}
+
+// ==================== CUSTOMERS ====================
+
+async function loadCustomers() {
+  const res = await fetch(`${API_BASE}/admin/customers-full`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("customers-tbody");
+  tbody.innerHTML = "";
+
+  data.customers.forEach((c) => {
+    const tr = document.createElement("tr");
+    const docsHtml = c.documents.length
+      ? c.documents.map((d) => `
+          <label style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <input type="checkbox" ${d.status === "completed" ? "checked" : ""} data-cust="${c.id}" data-doc="${d.document_id}" style="width:auto;">
+            ${d.name} <span class="small-note">(${d.status})</span>
+          </label>`).join("")
+      : `<span class="small-note">No documents required</span>`;
+
+    tr.innerHTML = `
+      <td>${c.name}<br><span class="small-note">${c.email}</span></td>
+      <td>${docsHtml}</td>`;
+    tbody.appendChild(tr);
+
+    tr.querySelectorAll("input[data-cust]").forEach((cb) => {
+      cb.addEventListener("change", async () => {
+        await fetch(`${API_BASE}/admin/customer-documents`, {
+          method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customer_id: cb.dataset.cust, document_id: cb.dataset.doc, status: cb.checked ? "completed" : "pending" }),
+        });
+      });
+    });
+  });
 }
 
 init();
