@@ -80,6 +80,7 @@
 <script>
 let allAppointments = [];
 let currentFilter = "upcoming";
+let pendingDocs = [];
 
 async function init() {
   const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
@@ -101,8 +102,25 @@ async function init() {
   const apptRes = await fetch(`${API_BASE}/api/my-appointments`, { credentials: "include" });
   const data = await apptRes.json();
   allAppointments = data.appointments || [];
+  pendingDocs = (data.documents || []).filter((d) => d.status !== "completed");
+
+  let docsBannerHtml = "";
+  if (pendingDocs.length) {
+    docsBannerHtml = `
+      <div class="signed-in-box" style="margin-bottom:20px;">
+        <strong>Please complete your intake documents before your session</strong>
+        <p class="small-note" style="margin-top:6px;">Your Zoom link won't be available until these are done. If you'd rather not use the links below, you can also fill them out and email them to hello@joyfullypresent.life.</p>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+          ${pendingDocs.map((d) => d.signing_url
+            ? `<a href="${d.signing_url}" target="_blank" class="btn-small" style="width:fit-content;">Sign: ${d.name}</a>`
+            : `<span class="small-note">${d.name} — pending</span>`
+          ).join("")}
+        </div>
+      </div>`;
+  }
 
   content.innerHTML = `
+    ${docsBannerHtml}
     <div class="tabs" id="filter-tabs">
       <button class="tab-btn" data-filter="upcoming">Upcoming</button>
       <button class="tab-btn" data-filter="past">Past</button>
@@ -174,6 +192,7 @@ function renderList() {
         <h3 style="margin-bottom:6px;">${a.service_name}</h3>
         <p style="margin:0;">${when}</p>
         ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn-small" style="margin-top:8px; display:inline-block;">Join Zoom</a><div class="small-note" style="margin-top:4px;">Passcode: Joyfully</div>` : ""}
+        ${!a.meeting_link && a.status !== "cancelled" && pendingDocs.length ? `<div class="small-note" style="margin-top:8px; color:#A8721E;">Session link available once documents are complete</div>` : ""}
       </div>
       <div style="text-align:right;">
         <div class="status-pill ${a.status}">${a.status}</div>
