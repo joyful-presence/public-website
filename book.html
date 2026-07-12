@@ -317,10 +317,11 @@ async function submitBooking() {
       <div class="signed-in-box">
         <strong>Before your session</strong>, please complete these documents (or fill them out and email to hello@joyfullypresent.life). Your Zoom link won't be available until they're done:
         <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-          ${pendingDocs.map((d) => d.signing_url
-            ? `<a href="${d.signing_url}" target="_blank" class="btn-small" style="width:fit-content;">Sign: ${d.name}</a>`
-            : `<span class="small-note">${d.name} — pending</span>`
-          ).join("")}
+          ${pendingDocs.map((d) => {
+            if (d.signing_url) return `<a href="${d.signing_url}" target="_blank" class="btn-small" style="width:fit-content;">Sign: ${d.name}</a>`;
+            if (d.download_url) return `<a href="${d.download_url}" target="_blank" class="btn-small" style="width:fit-content;">Download: ${d.name}</a>`;
+            return `<span class="small-note">${d.name} — contact us for a copy</span>`;
+          }).join("")}
         </div>
       </div>`;
   }
