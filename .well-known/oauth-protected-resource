@@ -1,10 +1,13 @@
 {
   "resource": "https://joyfullypresent.life",
   "authorization_servers": [
+    "https://accounts.google.com",
     "https://accounts.joyfullypresent.life"
   ],
   "scopes_supported": [
+    "openid",
     "profile",
+    "email",
     "coaching:read",
     "appointments:manage"
   ],
