@@ -2,13 +2,23 @@
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 
-# 2. Link all HTML pages to their Markdown alternative
-# This tells agents: "If you want Markdown, look for a .md file with the same name"
-/*.html
-  Link: </:path.md>; rel="alternate"; type="text/markdown"
+# 2. Link each HTML page to its specific Markdown alternative
+/index.html
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+/about.html
+  Link: </about.md>; rel="alternate"; type="text/markdown"
+/services.html
+  Link: </services.md>; rel="alternate"; type="text/markdown"
+/faq.html
+  Link: </faq.md>; rel="alternate"; type="text/markdown"
+/my-appointments.html
+  Link: </my-appointments.md>; rel="alternate"; type="text/markdown"
+/privacy.html
+  Link: </privacy.md>; rel="alternate"; type="text/markdown"
+/terms.html
+  Link: </terms.md>; rel="alternate"; type="text/markdown"
 
-# 3. Explicitly set content types for your Markdown files
-# This ensures agents treat your .md files as true Markdown
+# 3. Ensure Markdown files are served with the correct Content-Type
 /*.md
   Content-Type: text/markdown; charset=utf-8
 
