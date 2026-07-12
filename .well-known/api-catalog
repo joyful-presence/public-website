@@ -1,0 +1,25 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://joyfullypresent.life/api/v1",
+      "service-desc": [
+        {
+          "href": "https://joyfullypresent.life/openapi.yaml",
+          "type": "application/vnd.oai.openapi"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://joyfullypresent.life/docs/api",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://status.joyfullypresent.life",
+          "type": "text/html"
+        }
+      ]
+    }
+  ]
+}
