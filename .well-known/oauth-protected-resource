@@ -1,0 +1,14 @@
+{
+  "resource": "https://joyfullypresent.life",
+  "authorization_servers": [
+    "https://accounts.joyfullypresent.life"
+  ],
+  "scopes_supported": [
+    "profile",
+    "coaching:read",
+    "appointments:manage"
+  ],
+  "bearer_methods_supported": [
+    "header"
+  ]
+}
