@@ -1,2 +1,12 @@
+# Enable Markdown for Agents
+/
+  Accept: text/markdown
+  Link: </.well-known/api-catalog>; rel="api-catalog", </docs/api>; rel="service-doc"
+
+# Ensure API Catalog is served with the correct JSON type
 /.well-known/api-catalog
   Content-Type: application/linkset+json
+
+# Ensure Agent Skills index is served correctly
+/.well-known/agent-skills/index.json
+  Content-Type: application/json
