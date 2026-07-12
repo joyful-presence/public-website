@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+  "serverInfo": {
+    "name": "joyfully-present-coaching",
+    "version": "1.0.0"
+  },
+  "remoteEndpoints": {
+    "url": "https://joyfullypresent.life"
+  },
+  "capabilities": {
+    "tools": {}
+  }
+}
