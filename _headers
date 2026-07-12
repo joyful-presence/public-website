@@ -1,12 +1,17 @@
-# Enable Markdown for Agents
-/
-  Accept: text/markdown
-  Link: </.well-known/api-catalog>; rel="api-catalog", </docs/api>; rel="service-doc"
-
-# Ensure API Catalog is served with the correct JSON type
+# 1. Advertise the API Catalog
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 
-# Ensure Agent Skills index is served correctly
-/.well-known/agent-skills/index.json
-  Content-Type: application/json
+# 2. Link every page to its Markdown alternative
+# When an agent visits any HTML page, this tells it a .md version exists
+/*
+  Link: </:path.md>; rel="alternate"; type="text/markdown"
+
+# 3. Explicitly set content types for your special files
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+
+# 4. Global security headers (recommended best practice)
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
