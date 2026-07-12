@@ -1,0 +1,11 @@
+{
+  "issuer": "https://accounts.joyfullypresent.life",
+  "authorization_endpoint": "https://accounts.joyfullypresent.life/authorize",
+  "token_endpoint": "https://accounts.joyfullypresent.life/token",
+  "jwks_uri": "https://accounts.joyfullypresent.life/.well-known/jwks.json",
+  "response_types_supported": ["code", "token"],
+  "subject_types_supported": ["public"],
+  "id_token_signing_alg_values_supported": ["RS256"],
+  "scopes_supported": ["openid", "profile", "email"],
+  "grant_types_supported": ["authorization_code", "refresh_token"]
+}
