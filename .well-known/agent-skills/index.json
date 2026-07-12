@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "coaching-services",
+      "type": "skill-md",
+      "description": "Guides users through Mei's Stress & Anxiety Management Coaching for professionals and parents. Includes details on 60-minute single sessions, 4 or 12 session bundles, what is included (Zoom calls, daily quotes, midweek check-ins), and competitive pricing.",
+      "url": "https://joyfullypresent.life/.well-known/agent-skills/coaching-services/SKILL.md",
+      "digest": "sha256-placeholder-for-now"
+    }
+  ]
+}
