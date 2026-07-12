@@ -2,16 +2,17 @@
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 
-# 2. Link every page to its Markdown alternative
-# When an agent visits any HTML page, this tells it a .md version exists
-/*
+# 2. Link all HTML pages to their Markdown alternative
+# This tells agents: "If you want Markdown, look for a .md file with the same name"
+/*.html
   Link: </:path.md>; rel="alternate"; type="text/markdown"
 
-# 3. Explicitly set content types for your special files
+# 3. Explicitly set content types for your Markdown files
+# This ensures agents treat your .md files as true Markdown
 /*.md
   Content-Type: text/markdown; charset=utf-8
 
-# 4. Global security headers (recommended best practice)
+# 4. Global security headers
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
