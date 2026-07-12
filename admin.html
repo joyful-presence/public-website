@@ -162,11 +162,12 @@
   <!-- ===================== DOCUMENTS ===================== -->
   <div class="tab-panel" id="tab-documents">
     <div class="section-title-row"><h2 style="margin:0;">Required Documents</h2></div>
-    <p class="small-note">Add each document customers must complete via DocuSeal (intake forms, waivers, consent, etc). Every new customer is automatically sent all active documents when they first book. Get the Template ID from your DocuSeal dashboard.</p>
+    <p class="small-note">Add each document customers must complete before their session (intake forms, waivers, consent, etc). The simplest setup: upload a fillable PDF somewhere (e.g. your Pages site) and paste its link as the Download URL — customers download it, sign it, and email it to hello@joyfullypresent.life, and you check it off in the Customers tab below. DocuSeal Template ID is optional, only needed if you set up DocuSeal for automatic e-signing.</p>
 
     <div class="inline-form" id="doc-form">
       <div class="form-group"><label>Document Name</label><input type="text" id="doc-name" placeholder="e.g. Intake Form"></div>
-      <div class="form-group"><label>DocuSeal Template ID</label><input type="text" id="doc-template-id"></div>
+      <div class="form-group" style="flex:2;"><label>Download URL</label><input type="text" id="doc-download-url" placeholder="https://joyfullypresent.life/intake-form.pdf"></div>
+      <div class="form-group"><label>DocuSeal Template ID (optional)</label><input type="text" id="doc-template-id"></div>
       <div class="form-group"><label>Active</label><input type="checkbox" id="doc-active" checked style="width:auto;"></div>
       <button class="btn btn-primary" id="doc-save-btn" onclick="saveDocument()">Add Document</button>
       <button class="btn-small" id="doc-cancel-btn" style="display:none;" onclick="resetDocumentForm()">Cancel Edit</button>
@@ -641,7 +642,7 @@ async function loadDocuments() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${d.name}</td>
-      <td>${d.docuseal_template_id}</td>
+      <td>${d.download_url ? `<a href="${d.download_url}" target="_blank">Download link</a>` : "—"}${d.docuseal_template_id ? `<br><span class="small-note">DocuSeal: ${d.docuseal_template_id}</span>` : ""}</td>
       <td>${d.active ? "Yes" : "No"}</td>
       <td>
         <button class="btn-small" data-edit="${d.id}">Edit</button>
@@ -656,7 +657,8 @@ async function loadDocuments() {
 function editDocument(d) {
   editingDocumentId = d.id;
   document.getElementById("doc-name").value = d.name;
-  document.getElementById("doc-template-id").value = d.docuseal_template_id;
+  document.getElementById("doc-download-url").value = d.download_url || "";
+  document.getElementById("doc-template-id").value = d.docuseal_template_id || "";
   document.getElementById("doc-active").checked = !!d.active;
   document.getElementById("doc-save-btn").textContent = "Save Changes";
   document.getElementById("doc-cancel-btn").style.display = "inline-block";
@@ -665,6 +667,7 @@ function editDocument(d) {
 function resetDocumentForm() {
   editingDocumentId = null;
   document.getElementById("doc-name").value = "";
+  document.getElementById("doc-download-url").value = "";
   document.getElementById("doc-template-id").value = "";
   document.getElementById("doc-active").checked = true;
   document.getElementById("doc-save-btn").textContent = "Add Document";
@@ -674,10 +677,14 @@ function resetDocumentForm() {
 async function saveDocument() {
   const body = {
     name: document.getElementById("doc-name").value.trim(),
+    download_url: document.getElementById("doc-download-url").value.trim(),
     docuseal_template_id: document.getElementById("doc-template-id").value.trim(),
     active: document.getElementById("doc-active").checked,
   };
-  if (!body.name || !body.docuseal_template_id) { alert("Please enter a name and DocuSeal template ID."); return; }
+  if (!body.name || (!body.download_url && !body.docuseal_template_id)) {
+    alert("Please enter a name and either a download URL or a DocuSeal template ID.");
+    return;
+  }
 
   if (editingDocumentId) {
     await fetch(`${API_BASE}/admin/documents/${editingDocumentId}`, {
