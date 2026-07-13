@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Resources | Joyfully Present Life Coaching</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+<style>
+  .resource-card {
+    background: var(--teal);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 26px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .ig-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    justify-items: center;
+  }
+  .ig-grid blockquote { margin: 0; max-width: 100%; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+    </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="resources.html" aria-current="page">Free Resources</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+      <a href="book.html" class="btn btn-primary">Book a Session</a>
+    </div>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Free Resources</span>
+      <h1>A few things to get you started</h1>
+      <p class="lead">Guides, worksheets, and everyday inspiration &mdash; free to download, no strings attached.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap" style="max-width:760px;" id="resources-wrap">
+      <p class="small-note">Loading…</p>
+    </div>
+  </section>
+
+  <section class="section-soft">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Follow Along</span>
+        <h2>From Instagram</h2>
+      </div>
+      <div class="ig-grid" id="ig-wrap">
+        <p class="small-note">Loading…</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="resources.html">Free Resources</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>
+        <a href="https://instagram.com/YOUR_HANDLE" target="_blank" rel="noopener">Instagram</a> &middot;
+        <a href="https://facebook.com/YOUR_PAGE" target="_blank" rel="noopener">Facebook</a> &middot;
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script src="app-config.js"></script>
+<script>
+async function loadResources() {
+  const res = await fetch(`${API_BASE}/api/resources`);
+  const data = await res.json();
+  const wrap = document.getElementById("resources-wrap");
+  wrap.innerHTML = "";
+
+  if (!data.resources.length) {
+    wrap.innerHTML = `<p class="small-note" style="text-align:center;">New resources are on their way &mdash; check back soon.</p>`;
+    return;
+  }
+
+  data.resources.forEach((r) => {
+    const card = document.createElement("div");
+    card.className = "resource-card";
+    card.innerHTML = `
+      <div>
+        <h3 style="margin-bottom:4px;">${r.title}</h3>
+        <p style="margin:0;">${r.description || ""}</p>
+      </div>
+      <a href="${r.file_url}" target="_blank" class="btn btn-primary">Download</a>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+async function loadInstagram() {
+  const res = await fetch(`${API_BASE}/api/instagram-posts`);
+  const data = await res.json();
+  const wrap = document.getElementById("ig-wrap");
+  wrap.innerHTML = "";
+
+  if (!data.posts.length) {
+    wrap.innerHTML = `<p class="small-note">Nothing here yet &mdash; check back soon.</p>`;
+    return;
+  }
+
+  data.posts.forEach((p) => {
+    const bq = document.createElement("blockquote");
+    bq.className = "instagram-media";
+    bq.setAttribute("data-instgrm-permalink", p.post_url);
+    bq.setAttribute("data-instgrm-version", "14");
+    wrap.appendChild(bq);
+  });
+
+  // Load Instagram's official embed script, which finds and renders every
+  // blockquote.instagram-media on the page.
+  const script = document.createElement("script");
+  script.src = "https://www.instagram.com/embed.js";
+  script.async = true;
+  document.body.appendChild(script);
+}
+
+loadResources();
+loadInstagram();
+</script>
+
+</body>
+</html>
