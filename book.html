@@ -28,6 +28,7 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="about.html">About Me</a></li>
       <li><a href="services.html">Services</a></li>
+      <li><a href="resources.html">Free Resources</a></li>
       <li><a href="faq.html">FAQ</a></li>
     </ul>
     <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
@@ -128,12 +129,15 @@
         <li><a href="index.html">Home</a></li>
         <li><a href="about.html">About Me</a></li>
         <li><a href="services.html">Services</a></li>
+        <li><a href="resources.html">Free Resources</a></li>
         <li><a href="faq.html">FAQ</a></li>
       </ul>
     </div>
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
       <span>
+        <a href="https://instagram.com/YOUR_HANDLE" target="_blank" rel="noopener">Instagram</a> &middot;
+        <a href="https://facebook.com/YOUR_PAGE" target="_blank" rel="noopener">Facebook</a> &middot;
         <a href="terms.html">Terms</a> &middot;
         <a href="privacy.html">Privacy</a> &middot;
         <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
@@ -170,16 +174,34 @@ function goToStep(n) {
 async function loadServices() {
   const res = await fetch(`${API_BASE}/api/services`);
   const data = await res.json();
+
+  let usedServiceIds = [];
+  const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
+  const me = await meRes.json();
+  if (me.customer) {
+    const usedRes = await fetch(`${API_BASE}/api/my-used-services`, { credentials: "include" });
+    const usedData = await usedRes.json();
+    usedServiceIds = usedData.used_service_ids || [];
+  }
+
   const list = document.getElementById("service-list");
   list.innerHTML = "";
   data.services.forEach((s) => {
+    const alreadyUsed = s.one_time_only && usedServiceIds.includes(s.id);
     const el = document.createElement("div");
-    el.className = "option-card";
+    el.className = "option-card" + (alreadyUsed ? " disabled" : "");
     const bundleNote = s.is_package ? ` &middot; <strong>${s.package_size}-session bundle</strong>` : "";
-    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min${bundleNote}</p></div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
-    el.addEventListener("click", () => selectService(s, el));
+    const oneTimeNote = s.one_time_only && !alreadyUsed ? ` &middot; <strong>one-time offer</strong>` : "";
+    const usedNote = alreadyUsed ? `<span class="small-note" style="color:#A8721E;">Already used &mdash; one per customer</span>` : "";
+    el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min${bundleNote}${oneTimeNote}</p>${usedNote}</div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
+    if (alreadyUsed) {
+      el.style.opacity = "0.5";
+      el.style.cursor = "not-allowed";
+    } else {
+      el.addEventListener("click", () => selectService(s, el));
+      if (preselectServiceId === s.id) selectService(s, el);
+    }
     list.appendChild(el);
-    if (preselectServiceId === s.id) selectService(s, el);
   });
 }
 
