@@ -37,6 +37,7 @@
     <button class="tab-btn" data-tab="payments">Payment Settings</button>
     <button class="tab-btn" data-tab="documents">Documents</button>
     <button class="tab-btn" data-tab="customers">Customers</button>
+    <button class="tab-btn" data-tab="resources">Resources</button>
   </div>
 
   <!-- ===================== SERVICES ===================== -->
@@ -49,6 +50,7 @@
       <div class="form-group"><label>Active</label><input type="checkbox" id="svc-active" checked style="width:auto;"></div>
       <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="svc-description"></div>
       <div class="form-group"><label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="svc-is-package" style="width:auto;" onchange="togglePackageFields()"> This is a session bundle</label></div>
+      <div class="form-group"><label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="svc-one-time" style="width:auto;"> One-time use per customer</label></div>
       <div class="form-group" id="svc-package-size-group" style="display:none;"><label># of Sessions Included</label><input type="number" id="svc-package-size" value="4"></div>
       <div class="form-group" id="svc-redeem-group" style="display:none; flex:2;">
         <label>Redeemable As</label>
@@ -193,6 +195,48 @@
     </div>
   </div>
 
+  <!-- ===================== RESOURCES ===================== -->
+  <div class="tab-panel" id="tab-resources">
+    <div class="section-title-row"><h2 style="margin:0;">Free Resources</h2></div>
+    <p class="small-note">These appear on your public resources.html page for anyone to download.</p>
+    <div class="inline-form" id="resource-form">
+      <div class="form-group"><label>Title</label><input type="text" id="res-title" placeholder="e.g. 5-Minute Grounding Meditation"></div>
+      <div class="form-group" style="flex:2;"><label>File URL</label><input type="text" id="res-file-url" placeholder="https://joyfullypresent.life/grounding-meditation.pdf"></div>
+      <div class="form-group" style="flex:2;"><label>Description</label><input type="text" id="res-description"></div>
+      <div class="form-group"><label>Active</label><input type="checkbox" id="res-active" checked style="width:auto;"></div>
+      <button class="btn btn-primary" id="res-save-btn" onclick="saveResource()">Add Resource</button>
+      <button class="btn-small" id="res-cancel-btn" style="display:none;" onclick="resetResourceForm()">Cancel Edit</button>
+    </div>
+    <div class="table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>Title</th><th>File</th><th>Active</th><th></th></tr></thead>
+        <tbody id="resources-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Instagram Posts</h2></div>
+    <p class="small-note">Paste the URL of any public Instagram post or reel (e.g. https://www.instagram.com/p/XXXXXXXXX/) to embed it on resources.html.</p>
+    <div class="inline-form">
+      <div class="form-group" style="flex:2;"><label>Instagram Post URL</label><input type="text" id="ig-url" placeholder="https://www.instagram.com/reel/..."></div>
+      <button class="btn btn-primary" onclick="addInstagramPost()">Add Post</button>
+    </div>
+    <div class="table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>Post URL</th><th></th></tr></thead>
+        <tbody id="instagram-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Social Links</h2></div>
+    <p class="small-note">Shown in your site footer.</p>
+    <div class="inline-form" style="flex-direction:column; align-items:stretch; gap:14px;">
+      <div class="form-group"><label>Instagram URL</label><input type="text" id="social-instagram" placeholder="https://instagram.com/yourhandle"></div>
+      <div class="form-group"><label>Facebook URL</label><input type="text" id="social-facebook" placeholder="https://facebook.com/yourpage"></div>
+      <div class="form-group"><label>TikTok URL</label><input type="text" id="social-tiktok" placeholder="https://tiktok.com/@yourhandle"></div>
+      <button class="btn btn-primary" style="align-self:flex-start;" onclick="saveSocialLinks()">Save Social Links</button>
+    </div>
+  </div>
+
 </div>
 
 <div class="admin-shell" id="login-prompt" style="display:none; text-align:center;">
@@ -237,6 +281,9 @@ async function init() {
   loadSiteSettings();
   loadDocuments();
   loadCustomers();
+  loadResources();
+  loadInstagramPosts();
+  loadSocialLinks();
   addInvoiceItemRow();
 }
 
@@ -289,6 +336,7 @@ function editService(s) {
   document.getElementById("svc-active").checked = !!s.active;
   document.getElementById("svc-description").value = s.description || "";
   document.getElementById("svc-is-package").checked = !!s.is_package;
+  document.getElementById("svc-one-time").checked = !!s.one_time_only;
   document.getElementById("svc-package-size").value = s.package_size || 4;
   if (s.redeemable_service_id) document.getElementById("svc-redeemable-service").value = s.redeemable_service_id;
   togglePackageFields();
@@ -304,6 +352,7 @@ function resetServiceForm() {
   document.getElementById("svc-active").checked = true;
   document.getElementById("svc-description").value = "";
   document.getElementById("svc-is-package").checked = false;
+  document.getElementById("svc-one-time").checked = false;
   document.getElementById("svc-package-size").value = 4;
   togglePackageFields();
   document.getElementById("svc-save-btn").textContent = "Add Service";
@@ -320,6 +369,7 @@ async function saveService() {
     description: document.getElementById("svc-description").value.trim(),
     sort_order: 0,
     is_package: isPackage,
+    one_time_only: document.getElementById("svc-one-time").checked,
     package_size: isPackage ? parseInt(document.getElementById("svc-package-size").value, 10) : null,
     redeemable_service_id: isPackage ? document.getElementById("svc-redeemable-service").value : null,
   };
@@ -737,6 +787,131 @@ async function loadCustomers() {
       });
     });
   });
+}
+
+// ==================== RESOURCES ====================
+
+let editingResourceId = null;
+
+async function loadResources() {
+  const res = await fetch(`${API_BASE}/admin/resources`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("resources-tbody");
+  tbody.innerHTML = "";
+  data.resources.forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.title}</td>
+      <td><a href="${r.file_url}" target="_blank">Link</a></td>
+      <td>${r.active ? "Yes" : "No"}</td>
+      <td>
+        <button class="btn-small" data-edit="${r.id}">Edit</button>
+        <button class="btn-small danger" data-delete="${r.id}">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("[data-edit]").addEventListener("click", () => editResource(r));
+    tr.querySelector("[data-delete]").addEventListener("click", () => deleteResource(r.id));
+  });
+}
+
+function editResource(r) {
+  editingResourceId = r.id;
+  document.getElementById("res-title").value = r.title;
+  document.getElementById("res-file-url").value = r.file_url;
+  document.getElementById("res-description").value = r.description || "";
+  document.getElementById("res-active").checked = !!r.active;
+  document.getElementById("res-save-btn").textContent = "Save Changes";
+  document.getElementById("res-cancel-btn").style.display = "inline-block";
+}
+
+function resetResourceForm() {
+  editingResourceId = null;
+  document.getElementById("res-title").value = "";
+  document.getElementById("res-file-url").value = "";
+  document.getElementById("res-description").value = "";
+  document.getElementById("res-active").checked = true;
+  document.getElementById("res-save-btn").textContent = "Add Resource";
+  document.getElementById("res-cancel-btn").style.display = "none";
+}
+
+async function saveResource() {
+  const body = {
+    title: document.getElementById("res-title").value.trim(),
+    file_url: document.getElementById("res-file-url").value.trim(),
+    description: document.getElementById("res-description").value.trim(),
+    active: document.getElementById("res-active").checked,
+  };
+  if (!body.title || !body.file_url) { alert("Please enter a title and file URL."); return; }
+
+  if (editingResourceId) {
+    await fetch(`${API_BASE}/admin/resources/${editingResourceId}`, {
+      method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  } else {
+    await fetch(`${API_BASE}/admin/resources`, {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+  }
+  resetResourceForm();
+  loadResources();
+}
+
+async function deleteResource(id) {
+  if (!confirm("Delete this resource?")) return;
+  await fetch(`${API_BASE}/admin/resources/${id}`, { method: "DELETE", credentials: "include" });
+  loadResources();
+}
+
+// ==================== INSTAGRAM POSTS ====================
+
+async function loadInstagramPosts() {
+  const res = await fetch(`${API_BASE}/admin/instagram-posts`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("instagram-tbody");
+  tbody.innerHTML = "";
+  data.posts.forEach((p) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><a href="${p.post_url}" target="_blank">${p.post_url}</a></td>
+      <td><button class="btn-small danger" data-delete="${p.id}">Delete</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("[data-delete]").addEventListener("click", async () => {
+      await fetch(`${API_BASE}/admin/instagram-posts/${p.id}`, { method: "DELETE", credentials: "include" });
+      loadInstagramPosts();
+    });
+  });
+}
+
+async function addInstagramPost() {
+  const url = document.getElementById("ig-url").value.trim();
+  if (!url) { alert("Please paste an Instagram post URL."); return; }
+  await fetch(`${API_BASE}/admin/instagram-posts`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ post_url: url }),
+  });
+  document.getElementById("ig-url").value = "";
+  loadInstagramPosts();
+}
+
+// ==================== SOCIAL LINKS ====================
+
+async function loadSocialLinks() {
+  const res = await fetch(`${API_BASE}/admin/site-settings`, { credentials: "include" });
+  const data = await res.json();
+  document.getElementById("social-instagram").value = data.settings?.instagram_url || "";
+  document.getElementById("social-facebook").value = data.settings?.facebook_url || "";
+  document.getElementById("social-tiktok").value = data.settings?.tiktok_url || "";
+}
+
+async function saveSocialLinks() {
+  const body = {
+    instagram_url: document.getElementById("social-instagram").value.trim(),
+    facebook_url: document.getElementById("social-facebook").value.trim(),
+    tiktok_url: document.getElementById("social-tiktok").value.trim(),
+  };
+  await fetch(`${API_BASE}/admin/site-settings`, {
+    method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  alert("Social links saved.");
 }
 
 init();
