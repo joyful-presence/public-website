@@ -111,8 +111,8 @@
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
       <span>
-       <a href="https://www.instagram.com/joyfullypresentlifecoaching/" target="_blank" rel="noopener">Instagram</a> &middot;
-        <a href="https://www.facebook.com/joyfullypresentlifecoaching" target="_blank" rel="noopener">Facebook</a> &middot;
+        <a href="https://instagram.com/YOUR_HANDLE" target="_blank" rel="noopener">Instagram</a> &middot;
+        <a href="https://facebook.com/YOUR_PAGE" target="_blank" rel="noopener">Facebook</a> &middot;
         <a href="terms.html">Terms</a> &middot;
         <a href="privacy.html">Privacy</a> &middot;
         <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
@@ -176,6 +176,7 @@ async function init() {
       </div>
 
       <span class="invoice-status-badge ${isPaid ? "is-paid" : "is-due"}">${isPaid ? "Paid" : "Payment Due"}</span>
+      ${!isPaid ? `<p class="small-note" style="color:#A8721E; margin-top:10px;"><strong>Payment is required before your session.</strong> Your Zoom link and passcode will be released once this invoice is paid.</p>` : ""}
 
       <table class="invoice-table">
         <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
