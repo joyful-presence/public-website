@@ -69,8 +69,8 @@
     <div class="footer-bottom">
       <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
       <span>
-        <a href="https://www.instagram.com/joyfullypresentlifecoaching/" target="_blank" rel="noopener">Instagram</a> &middot;
-        <a href="https://www.facebook.com/joyfullypresentlifecoaching" target="_blank" rel="noopener">Facebook</a> &middot;
+        <a href="https://instagram.com/YOUR_HANDLE" target="_blank" rel="noopener">Instagram</a> &middot;
+        <a href="https://facebook.com/YOUR_PAGE" target="_blank" rel="noopener">Facebook</a> &middot;
         <a href="terms.html">Terms</a> &middot;
         <a href="privacy.html">Privacy</a> &middot;
         <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
@@ -192,12 +192,17 @@ function renderList() {
     });
     const card = document.createElement("div");
     card.className = "appt-card";
+    const invoiceLink = a.invoice_token
+      ? `<a href="invoice.html?token=${a.invoice_token}" class="btn-small" style="margin-top:8px; display:inline-block; margin-right:6px;">${a.is_paid ? "View Invoice" : "Pay Now"}</a>`
+      : "";
     card.innerHTML = `
       <div>
         <h3 style="margin-bottom:6px;">${a.service_name}</h3>
         <p style="margin:0;">${when}</p>
         ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn-small" style="margin-top:8px; display:inline-block;">Join Zoom</a><div class="small-note" style="margin-top:4px;">Passcode: Joyfully</div>` : ""}
-        ${!a.meeting_link && a.status !== "cancelled" && pendingDocs.length ? `<div class="small-note" style="margin-top:8px; color:#A8721E;">Session link available once documents are complete</div>` : ""}
+        ${!a.meeting_link && a.status !== "cancelled" && !a.is_paid ? `<div class="small-note" style="margin-top:8px; color:#A8721E;"><strong>Payment is required before your session</strong> — your Zoom link will appear here once paid.</div>` : ""}
+        ${!a.meeting_link && a.status !== "cancelled" && a.is_paid && pendingDocs.length ? `<div class="small-note" style="margin-top:8px; color:#A8721E;">Session link available once documents are complete</div>` : ""}
+        ${invoiceLink}
       </div>
       <div style="text-align:right;">
         <div class="status-pill ${a.status}">${a.status}</div>
