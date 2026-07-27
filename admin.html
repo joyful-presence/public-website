@@ -38,6 +38,7 @@
     <button class="tab-btn" data-tab="documents">Documents</button>
     <button class="tab-btn" data-tab="customers">Customers</button>
     <button class="tab-btn" data-tab="resources">Resources</button>
+    <button class="tab-btn" data-tab="calendar">Calendar</button>
   </div>
 
   <!-- ===================== SERVICES ===================== -->
@@ -237,6 +238,13 @@
     </div>
   </div>
 
+  <!-- ===================== CALENDAR ===================== -->
+  <div class="tab-panel" id="tab-calendar">
+    <div class="section-title-row"><h2 style="margin:0;">All Upcoming Sessions</h2></div>
+    <p class="small-note">Every confirmed, non-cancelled appointment, soonest first.</p>
+    <div id="calendar-wrap"></div>
+  </div>
+
 </div>
 
 <div class="admin-shell" id="login-prompt" style="display:none; text-align:center;">
@@ -284,6 +292,7 @@ async function init() {
   loadResources();
   loadInstagramPosts();
   loadSocialLinks();
+  loadCalendar();
   addInvoiceItemRow();
 }
 
@@ -912,6 +921,48 @@ async function saveSocialLinks() {
     method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   alert("Social links saved.");
+}
+
+async function loadCalendar() {
+  const res = await fetch(`${API_BASE}/admin/appointments`, { credentials: "include" });
+  const data = await res.json();
+  const wrap = document.getElementById("calendar-wrap");
+
+  const upcoming = data.appointments
+    .filter((a) => a.status !== "cancelled" && new Date(a.start_time).getTime() > Date.now())
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+  if (!upcoming.length) {
+    wrap.innerHTML = `<p class="small-note">No upcoming sessions scheduled.</p>`;
+    return;
+  }
+
+  const groups = {};
+  upcoming.forEach((a) => {
+    const dayKey = new Date(a.start_time).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric" });
+    if (!groups[dayKey]) groups[dayKey] = [];
+    groups[dayKey].push(a);
+  });
+
+  wrap.innerHTML = Object.entries(groups).map(([day, events]) => `
+    <div style="margin-bottom:24px;">
+      <h3 style="margin-bottom:10px; font-size:1rem;">${day}</h3>
+      <table class="admin-table">
+        <thead><tr><th>Time</th><th>Service</th><th>Customer</th><th>Payment</th></tr></thead>
+        <tbody>
+          ${events.map((a) => {
+            const time = new Date(a.start_time).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+            return `<tr>
+              <td>${time}</td>
+              <td>${a.service_name}</td>
+              <td>${a.customer_name}<br><span class="small-note">${a.customer_email}</span></td>
+              <td>${a.payment_status}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `).join("");
 }
 
 init();
