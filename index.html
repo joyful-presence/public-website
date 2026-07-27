@@ -18,14 +18,17 @@
 
 <header class="site-header">
   <div class="wrap">
-    <nav class="nav">
-      <a href="index.html" class="brand">
+    <nav class="nav" style="display: flex; align-items: center; gap: 2rem;">
+      <!-- flex-shrink prevents squishing, margin-right pushes the menu away -->
+      <a href="index.html" class="brand" style="flex-shrink: 0; margin-right: auto;">
         <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
         <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
       </a>
+      
       <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+      
       <div class="mobile-menu-panel" id="mobile-menu">
-        <ul class="nav-links">
+        <ul class="nav-links" style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
           <li><a href="index.html" aria-current="page">Home</a></li>
           <li><a href="about.html">About Me</a></li>
           <li><a href="services.html">Services</a></li>
@@ -41,7 +44,6 @@
     </nav>
   </div>
 </header>
-
 <main>
 
   <!-- INTRO PRICING BANNER — delete this whole <section>...</section> block when introductory pricing ends -->
