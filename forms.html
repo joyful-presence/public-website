@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forms | Joyfully Present Life Coaching</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="booking.css">
+<style>
+  .doc-row {
+    background: var(--teal);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 22px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .doc-row.needs-attention { border-color: #D9A441; box-shadow: 0 0 0 1px #D9A441 inset; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+      <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+    </a>
+    <button class="nav-toggle" onclick="document.getElementById('mobile-menu').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div class="mobile-menu-panel" id="mobile-menu">
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About Me</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="resources.html">Free Resources</a></li>
+      <li><a href="forms.html" aria-current="page">Forms</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="my-appointments.html" class="btn btn-ghost">My Appointments</a>
+      <a href="book.html" class="btn btn-primary">Book a Session</a>
+    </div>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">Forms</span>
+      <h1>Required forms</h1>
+      <p class="lead">Everything listed here needs to be completed and emailed to hello@joyfullypresent.life before a session can take place.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap" style="max-width:700px;" id="forms-wrap">
+      <p class="small-note">Loading…</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <a href="index.html" class="brand">
+        <img src="https://joyfullypresent.life/logo.png" alt="Joyfully Present Life Coaching">
+        <span>Joyfully Present<span class="tagline">Life Coaching</span></span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About Me</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="resources.html">Free Resources</a></li>
+        <li><a href="forms.html">Forms</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Joyfully Present Life Coaching LLC &middot; 440 N Barranca Ave #9885, Covina, CA 91723</span>
+      <span>
+        <a href="https://instagram.com/joyfullypresentlifecoaching" target="_blank" rel="noopener">Instagram</a> &middot;
+        <a href="https://facebook.com/joyfullypresentlifecoaching" target="_blank" rel="noopener">Facebook</a> &middot;
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="https://status.joyfullypresent.life" target="_blank" rel="noopener">Status</a> &middot;
+        hello@joyfullypresent.life
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script src="app-config.js"></script>
+<script>
+async function init() {
+  const wrap = document.getElementById("forms-wrap");
+  const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
+  const me = await meRes.json();
+
+  if (me.customer) {
+    const res = await fetch(`${API_BASE}/api/my-documents`, { credentials: "include" });
+    const data = await res.json();
+    renderPersonal(data.documents, wrap);
+  } else {
+    const res = await fetch(`${API_BASE}/api/documents-list`);
+    const data = await res.json();
+    renderGeneral(data.documents, wrap);
+  }
+}
+
+function renderPersonal(documents, wrap) {
+  if (!documents.length) {
+    wrap.innerHTML = `<p style="text-align:center;">No forms are required right now.</p>`;
+    return;
+  }
+
+  const pendingCount = documents.filter((d) => d.status !== "completed").length;
+  const summary = pendingCount
+    ? `<div class="signed-in-box" style="margin-bottom:24px;"><strong>${pendingCount} form${pendingCount > 1 ? "s" : ""} still need${pendingCount > 1 ? "" : "s"} your attention</strong> — highlighted below. Complete each one and email it to <a href="mailto:hello@joyfullypresent.life">hello@joyfullypresent.life</a> so we can mark it received.</div>`
+    : `<div class="signed-in-box" style="margin-bottom:24px; background:var(--teal-pale);"><strong>You're all set</strong> — every required form is complete.</div>`;
+
+  wrap.innerHTML = summary + documents.map((d) => {
+    const needsAttention = d.status !== "completed";
+    let actionHtml = "";
+    if (needsAttention) {
+      if (d.signing_url) actionHtml = `<a href="${d.signing_url}" target="_blank" class="btn btn-primary">Sign Now</a>`;
+      else if (d.download_url) actionHtml = `<a href="${d.download_url}" target="_blank" class="btn btn-primary">Download</a>`;
+      else actionHtml = `<span class="small-note">Contact us for a copy</span>`;
+    }
+    return `
+      <div class="doc-row ${needsAttention ? "needs-attention" : ""}">
+        <div>
+          <h3 style="margin-bottom:4px;">${d.name}</h3>
+          <span class="status-pill ${needsAttention ? "pending" : "completed"}">${needsAttention ? "needs attention" : "completed"}</span>
+        </div>
+        ${actionHtml}
+      </div>`;
+  }).join("");
+}
+
+function renderGeneral(documents, wrap) {
+  if (!documents.length) {
+    wrap.innerHTML = `<p style="text-align:center;">No forms are required right now.</p>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="signed-in-box" style="margin-bottom:24px;">
+      Sign in to see exactly which of these you still need to complete, with direct download/sign links.
+      <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn-small" href="${API_BASE}/auth/google/start?return_to=${encodeURIComponent("/forms.html")}">Continue with Google</a>
+        <a class="btn-small" href="${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/forms.html")}">Sign In / Create Account</a>
+      </div>
+    </div>
+  ` + documents.map((d) => `
+      <div class="doc-row">
+        <h3 style="margin:0;">${d.name}</h3>
+      </div>`).join("") + `
+    <p class="small-note" style="margin-top:16px;">Once completed, email the finished form to <a href="mailto:hello@joyfullypresent.life">hello@joyfullypresent.life</a> so it can be marked received before your session.</p>`;
+}
+
+init();
+</script>
+
+</body>
+</html>
