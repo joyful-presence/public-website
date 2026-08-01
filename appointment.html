@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Appointment | Joyfully Present Life Coaching</title>
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="JP" />
-<link rel="manifest" href="/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -146,7 +144,7 @@ async function init() {
       <p style="margin-bottom:14px;">${when}</p>
       <div style="display:flex; gap:10px; margin-bottom:14px;">
         <span class="status-pill ${a.status}">${a.status}</span>
-        <span class="pay-pill">${a.payment_status}</span>
+        <span class="pay-pill">${a.price_cents === 0 ? "Complimentary" : a.payment_status}</span>
       </div>
       <p class="small-note">Booked for ${a.customer_name} (${a.email})</p>
       ${a.meeting_link && a.status !== "cancelled" ? `<a href="${a.meeting_link}" target="_blank" class="btn btn-primary" style="margin-bottom:6px; display:inline-block;">Join Zoom</a><div class="small-note" style="margin-bottom:12px;">Passcode: Joyfully</div>` : ""}
