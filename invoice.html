@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invoice | Joyfully Present Life Coaching</title>
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="JP" />
-<link rel="manifest" href="/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -145,6 +143,7 @@ async function init() {
 
   const inv = data.invoice;
   const isPaid = inv.status === "paid" || justPaid === "1";
+  const isFree = inv.amount_cents === 0;
   const invoiceNumber = inv.id.slice(0, 8).toUpperCase();
 
   const itemsHtml = data.items.map((it) => `
@@ -178,8 +177,8 @@ async function init() {
         </div>
       </div>
 
-      <span class="invoice-status-badge ${isPaid ? "is-paid" : "is-due"}">${isPaid ? "Paid" : "Payment Due"}</span>
-      ${!isPaid ? `<p class="small-note" style="color:#A8721E; margin-top:10px;"><strong>Payment is required before your session.</strong> Your Zoom link and passcode will be released once this invoice is paid.</p>` : ""}
+      <span class="invoice-status-badge ${isFree ? "is-paid" : (isPaid ? "is-paid" : "is-due")}">${isFree ? "Complimentary" : (isPaid ? "Paid" : "Payment Due")}</span>
+      ${!isPaid && !isFree ? `<p class="small-note" style="color:#A8721E; margin-top:10px;"><strong>Payment is required before your session.</strong> Your Zoom link and passcode will be released once this invoice is paid.</p>` : ""}
 
       <table class="invoice-table">
         <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
