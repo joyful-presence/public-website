@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin | Joyfully Present</title>
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="JP" />
-<link rel="manifest" href="/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -414,7 +412,7 @@ async function loadAppointments() {
   tbody.innerHTML = "";
   data.appointments.forEach((a) => {
     const when = new Date(a.start_time).toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+      timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
     });
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -941,7 +939,7 @@ async function loadCalendar() {
 
   const groups = {};
   upcoming.forEach((a) => {
-    const dayKey = new Date(a.start_time).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric" });
+    const dayKey = new Date(a.start_time).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric" }) + " (Pacific Time)";
     if (!groups[dayKey]) groups[dayKey] = [];
     groups[dayKey].push(a);
   });
@@ -953,7 +951,7 @@ async function loadCalendar() {
         <thead><tr><th>Time</th><th>Service</th><th>Customer</th><th>Payment</th></tr></thead>
         <tbody>
           ${events.map((a) => {
-            const time = new Date(a.start_time).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+            const time = new Date(a.start_time).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
             return `<tr>
               <td>${time}</td>
               <td>${a.service_name}</td>
