@@ -4,12 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Book a Session | Joyfully Present Life Coaching</title>
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="JP" />
-<link rel="manifest" href="/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -44,7 +42,7 @@
   <section style="padding: 18px 0 0;">
     <div class="wrap">
       <div style="background: var(--btn); color: var(--btn-text); border-radius: var(--radius-md); padding: 14px 22px; text-align: center; font-weight: 600; font-size: 0.92rem;">
-        &#10024; Take advantage of limited-time introductory pricing. Rates are subject to change. Only 3 spots available for new clients.
+        &#10024; Introductory pricing &mdash; current rates are limited-time and subject to change.
       </div>
     </div>
   </section>
@@ -258,7 +256,7 @@ async function loadSlots() {
   data.slots.forEach((slot) => {
     const btn = document.createElement("button");
     btn.className = "slot-btn";
-    btn.textContent = slot.label.split(", ").slice(1).join(", ");
+    btn.textContent = formatLocalDateTime(slot.start_time, { weekday: false });
     btn.addEventListener("click", () => {
       selectedSlot = slot;
       document.querySelectorAll(".slot-btn").forEach((b) => b.classList.remove("selected"));
@@ -331,8 +329,8 @@ async function submitBooking() {
     document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.sessions_granted} sessions added to your account`;
   } else {
     document.getElementById("confirm-summary").textContent = data.used_credit
-      ? `${data.service_name} — ${data.label} (using a session credit)`
-      : `${data.service_name} — ${data.label}`;
+      ? `${data.service_name} — ${formatLocalDateTime(data.start_time)} (using a session credit)`
+      : `${data.service_name} — ${formatLocalDateTime(data.start_time)}`;
   }
 
   if (data.guest_token) {
