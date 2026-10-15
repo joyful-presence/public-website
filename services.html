@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Services | Joyfully Present Life Coaching</title>
 <meta name="description" content="Explore coaching sessions and packages at Joyfully Present, from a free discovery call to ongoing coaching support.">
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="JP" />
-<link rel="manifest" href="/site.webmanifest" />
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,7 +46,7 @@
   <section style="padding: 18px 0 0;">
     <div class="wrap">
       <div style="background: var(--btn); color: var(--btn-text); border-radius: var(--radius-md); padding: 14px 22px; text-align: center; font-weight: 600; font-size: 0.92rem;">
-        &#10024; Take advantage of limited-time introductory pricing. Rates are subject to change. Only 3 spots available for new clients.
+        &#10024; Introductory pricing &mdash; current rates are limited-time and subject to change.
       </div>
     </div>
   </section>
@@ -58,7 +56,7 @@
     <div class="wrap">
       <span class="eyebrow">Services</span>
       <h1>Ways to work together</h1>
-      <p class="lead">Every relationship starts with a free conversation and complementary coaching session. From there, choose the pace and depth that fits your life right now.</p>
+      <p class="lead">Every relationship starts with a free conversation. From there, choose the pace and depth that fits your life right now.</p>
     </div>
   </section>
 
@@ -69,7 +67,7 @@
         <li>A 45-minute one-on-one coaching session on Zoom</li>
         <li>Personalized guidance tailored to your goals</li>
         <li>Simple tools you can implement in minutes</li>
-        <li>A daily inspirational quote and positive prompts</li>
+        <li>A daily inspirational quote and positive prompt</li>
         <li>One midweek email check-in</li>
       </ul>
     </div>
@@ -90,13 +88,22 @@ async function loadServices() {
   const data = await res.json();
   const wrap = document.getElementById("services-wrap");
   wrap.innerHTML = "";
+  const byId = Object.fromEntries(data.services.map((s) => [s.id, s]));
   data.services.forEach((s) => {
     const card = document.createElement("div");
     card.className = "service-card";
+    let bundleInfo = "";
+    if (s.is_package) {
+      const redeemable = byId[s.redeemable_service_id];
+      const sessionLength = redeemable ? `${redeemable.duration_minutes}-minute` : "";
+      const expiry = s.expires_after_months || 6;
+      bundleInfo = `<p class="small-note">Includes ${s.package_size} ${sessionLength} sessions${redeemable ? ` (${redeemable.name})` : ""}. Credits expire ${expiry} months after purchase.</p>`;
+    }
     card.innerHTML = `
       <div>
         <h3>${s.name}</h3>
         <p>${s.description || ""}</p>
+        ${bundleInfo}
       </div>
       <div style="text-align:right;">
         <div class="price">${formatMoney(s.price_cents)}<small>${s.duration_minutes} minutes</small></div>
