@@ -198,11 +198,18 @@ async function loadServices() {
 
   const list = document.getElementById("service-list");
   list.innerHTML = "";
+  const byId = Object.fromEntries(data.services.map((s) => [s.id, s]));
   data.services.forEach((s) => {
     const alreadyUsed = s.one_time_only && usedServiceIds.includes(s.id);
     const el = document.createElement("div");
     el.className = "option-card" + (alreadyUsed ? " disabled" : "");
-    const bundleNote = s.is_package ? ` &middot; <strong>${s.package_size}-session bundle</strong>` : "";
+    let bundleNote = "";
+    if (s.is_package) {
+      const redeemable = byId[s.redeemable_service_id];
+      const sessionLength = redeemable ? `${redeemable.duration_minutes}-min` : "";
+      const expiry = s.expires_after_months || 6;
+      bundleNote = ` &middot; <strong>${s.package_size} ${sessionLength} sessions</strong> &middot; expires ${expiry} mo. after purchase`;
+    }
     const oneTimeNote = s.one_time_only && !alreadyUsed ? ` &middot; <strong>one-time offer</strong>` : "";
     const usedNote = alreadyUsed ? `<span class="small-note" style="color:#A8721E;">Already used &mdash; one per customer</span>` : "";
     el.innerHTML = `<div class="row"><div><h3>${s.name}</h3><p>${s.description || ""} &middot; ${s.duration_minutes} min${bundleNote}${oneTimeNote}</p>${usedNote}</div><div class="price">${formatMoney(s.price_cents)}</div></div>`;
