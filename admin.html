@@ -53,6 +53,7 @@
       <div class="form-group"><label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="svc-is-package" style="width:auto;" onchange="togglePackageFields()"> This is a session bundle</label></div>
       <div class="form-group"><label style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="svc-one-time" style="width:auto;"> One-time use per customer</label></div>
       <div class="form-group" id="svc-package-size-group" style="display:none;"><label># of Sessions Included</label><input type="number" id="svc-package-size" value="4"></div>
+      <div class="form-group" id="svc-expiry-group" style="display:none;"><label>Credits Expire After (months)</label><input type="number" id="svc-expiry-months" value="6"></div>
       <div class="form-group" id="svc-redeem-group" style="display:none; flex:2;">
         <label>Redeemable As</label>
         <select id="svc-redeemable-service"></select>
@@ -133,6 +134,20 @@
     <div class="table-scroll"><table class="admin-table">
       <thead><tr><th>Date</th><th>Reason</th><th></th></tr></thead>
       <tbody id="blocked-tbody"></tbody>
+    </table></div>
+
+    <div class="section-title-row" style="margin-top:36px;"><h2 style="margin:0;">Blocked Hours</h2></div>
+    <p class="small-note">Block a specific time range on a specific date (e.g. Tuesday 3:00-4:00pm) without blocking the whole day.</p>
+    <div class="inline-form">
+      <div class="form-group"><label>Date</label><input type="date" id="blockhour-date"></div>
+      <div class="form-group"><label>Start</label><input type="time" id="blockhour-start"></div>
+      <div class="form-group"><label>End</label><input type="time" id="blockhour-end"></div>
+      <div class="form-group" style="flex:2;"><label>Reason</label><input type="text" id="blockhour-reason"></div>
+      <button class="btn btn-primary" onclick="addBlockedHour()">Block Hours</button>
+    </div>
+    <div class="table-scroll"><table class="admin-table">
+      <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Reason</th><th></th></tr></thead>
+      <tbody id="blockedhours-tbody"></tbody>
     </table></div>
   </div>
 
@@ -285,6 +300,7 @@ async function init() {
   loadInvoices();
   loadAvailability();
   loadBlockedDates();
+  loadBlockedHours();
   loadPaymentSettings();
   loadSiteSettings();
   loadDocuments();
@@ -334,6 +350,7 @@ async function loadServices() {
 function togglePackageFields() {
   const isPackage = document.getElementById("svc-is-package").checked;
   document.getElementById("svc-package-size-group").style.display = isPackage ? "block" : "none";
+  document.getElementById("svc-expiry-group").style.display = isPackage ? "block" : "none";
   document.getElementById("svc-redeem-group").style.display = isPackage ? "block" : "none";
 }
 
@@ -347,6 +364,7 @@ function editService(s) {
   document.getElementById("svc-is-package").checked = !!s.is_package;
   document.getElementById("svc-one-time").checked = !!s.one_time_only;
   document.getElementById("svc-package-size").value = s.package_size || 4;
+  document.getElementById("svc-expiry-months").value = s.expires_after_months || 6;
   if (s.redeemable_service_id) document.getElementById("svc-redeemable-service").value = s.redeemable_service_id;
   togglePackageFields();
   document.getElementById("svc-save-btn").textContent = "Save Changes";
@@ -363,6 +381,7 @@ function resetServiceForm() {
   document.getElementById("svc-is-package").checked = false;
   document.getElementById("svc-one-time").checked = false;
   document.getElementById("svc-package-size").value = 4;
+  document.getElementById("svc-expiry-months").value = 6;
   togglePackageFields();
   document.getElementById("svc-save-btn").textContent = "Add Service";
   document.getElementById("svc-cancel-btn").style.display = "none";
@@ -380,6 +399,7 @@ async function saveService() {
     is_package: isPackage,
     one_time_only: document.getElementById("svc-one-time").checked,
     package_size: isPackage ? parseInt(document.getElementById("svc-package-size").value, 10) : null,
+    expires_after_months: isPackage ? parseInt(document.getElementById("svc-expiry-months").value, 10) : null,
     redeemable_service_id: isPackage ? document.getElementById("svc-redeemable-service").value : null,
   };
   if (!body.name) { alert("Please enter a service name."); return; }
@@ -642,6 +662,40 @@ async function addBlockedDate() {
   document.getElementById("block-date").value = "";
   document.getElementById("block-reason").value = "";
   loadBlockedDates();
+}
+
+async function loadBlockedHours() {
+  const res = await fetch(`${API_BASE}/admin/blocked-hours`, { credentials: "include" });
+  const data = await res.json();
+  const tbody = document.getElementById("blockedhours-tbody");
+  tbody.innerHTML = "";
+  data.blocked_hours.forEach((b) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${b.date}</td><td>${b.start_time}</td><td>${b.end_time}</td><td>${b.reason || ""}</td><td><button class="btn-small danger" data-id="${b.id}">Delete</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector("button").addEventListener("click", async () => {
+      await fetch(`${API_BASE}/admin/blocked-hours/${b.id}`, { method: "DELETE", credentials: "include" });
+      loadBlockedHours();
+    });
+  });
+}
+
+async function addBlockedHour() {
+  const body = {
+    date: document.getElementById("blockhour-date").value,
+    start_time: document.getElementById("blockhour-start").value,
+    end_time: document.getElementById("blockhour-end").value,
+    reason: document.getElementById("blockhour-reason").value.trim(),
+  };
+  if (!body.date || !body.start_time || !body.end_time) { alert("Please fill in the date, start time, and end time."); return; }
+  await fetch(`${API_BASE}/admin/blocked-hours`, {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  document.getElementById("blockhour-date").value = "";
+  document.getElementById("blockhour-start").value = "";
+  document.getElementById("blockhour-end").value = "";
+  document.getElementById("blockhour-reason").value = "";
+  loadBlockedHours();
 }
 
 // ==================== PAYMENT SETTINGS ====================
