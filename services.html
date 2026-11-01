@@ -96,8 +96,8 @@ async function loadServices() {
     if (s.is_package) {
       const redeemable = byId[s.redeemable_service_id];
       const sessionLength = redeemable ? `${redeemable.duration_minutes}-minute` : "";
-      const expiry = s.expires_after_months || 6;
-      bundleInfo = `<p class="small-note">Includes ${s.package_size} ${sessionLength} sessions${redeemable ? ` (${redeemable.name})` : ""}. Credits expire ${expiry} months after purchase.</p>`;
+      const expiry = 12;
+      bundleInfo = `<p class="small-note">Includes ${s.package_size} ${sessionLength} sessions${redeemable ? ` (${redeemable.name})` : ""}. All session credits expire exactly ${expiry} months from purchase. Sessions are not transferable.</p>`;
     }
     card.innerHTML = `
       <div>
