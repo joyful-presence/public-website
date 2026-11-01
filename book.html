@@ -207,8 +207,8 @@ async function loadServices() {
     if (s.is_package) {
       const redeemable = byId[s.redeemable_service_id];
       const sessionLength = redeemable ? `${redeemable.duration_minutes}-min` : "";
-      const expiry = s.expires_after_months || 6;
-      bundleNote = ` &middot; <strong>${s.package_size} ${sessionLength} sessions</strong> &middot; expires ${expiry} mo. after purchase`;
+      const expiry = 12;
+      bundleNote = ` &middot; <strong>${s.package_size} ${sessionLength} sessions</strong> &middot; expires ${expiry} months after purchase &middot; non-transferable`;
     }
     const oneTimeNote = s.one_time_only && !alreadyUsed ? ` &middot; <strong>one-time offer</strong>` : "";
     const usedNote = alreadyUsed ? `<span class="small-note" style="color:#A8721E;">Already used &mdash; one per customer</span>` : "";
@@ -295,7 +295,7 @@ async function checkSignedIn() {
       if (match && match.remaining > 0) {
         boxHtml += `<label style="display:flex; align-items:center; gap:8px; margin-top:12px;">
           <input type="checkbox" id="use-credit-checkbox" style="width:auto;" checked>
-          Use one of my ${match.remaining} available session credits (no charge)
+          Use prepaid session credits (${match.remaining} remaining) &mdash; no charge
         </label>`;
       }
     }
