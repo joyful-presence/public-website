@@ -455,8 +455,19 @@ async function loadAppointments() {
           <button class="btn-small" data-link-save="${a.id}">Save</button>
         </div>
       </td>
-      <td><button class="btn-small danger" data-delete-appt="${a.id}">Delete</button></td>`;
+      <td style="display:flex; gap:6px;">
+        ${a.payment_status === "paid" && a.price_cents > 0 ? `<button class="btn-small" data-refund-appt="${a.id}">Refund</button>` : ""}
+        <button class="btn-small danger" data-delete-appt="${a.id}">Delete</button>
+      </td>`;
     tbody.appendChild(tr);
+    const refundBtn = tr.querySelector("[data-refund-appt]");
+    if (refundBtn) refundBtn.addEventListener("click", async () => {
+      const how = a.invoice_status ? `This will refund the full ${formatMoney(a.price_cents)} to the customer's card in Stripe` : "This session was covered by a bundle credit, so the credit will be returned to the customer's bundle";
+      if (!confirm(`Fully refund "${a.service_name}" for ${a.customer_name}?\n\n${how}. If the session hasn't happened yet it will also be cancelled.\n\nThis can't be undone.`)) return;
+      await runRefund(`${API_BASE}/admin/appointments/${a.id}/refund`, refundBtn);
+      loadAppointments();
+      loadInvoices();
+    });
   });
 
   tbody.querySelectorAll("[data-delete-appt]").forEach((btn) => {
@@ -572,6 +583,28 @@ async function createInvoice() {
   }
 }
 
+// Shared by the Refund buttons on the Appointments and Invoices tabs.
+async function runRefund(url, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Refunding…";
+  try {
+    const res = await fetch(url, { method: "POST", credentials: "include" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || "The refund could not be completed.");
+      return;
+    }
+    if (data.method === "credit") alert("Done — the session credit was returned to the customer's bundle.");
+    else alert(`Refunded ${formatMoney(data.amount_cents || 0)} to the customer's card.${data.credits ? " Their remaining session credits were removed." : ""}`);
+  } catch (err) {
+    alert("Something went wrong — check Stripe before trying again.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
 async function loadInvoices() {
   const res = await fetch(`${API_BASE}/admin/invoices`, { credentials: "include" });
   const data = await res.json();
@@ -585,7 +618,8 @@ async function loadInvoices() {
       <td>${inv.status}</td>
       <td>${(inv.allowed_payment_methods || "").split(",").filter(Boolean).join(", ") || "—"}</td>
       <td style="display:flex; gap:6px;">
-        ${inv.status !== "paid" ? `<button class="btn-small" data-mark-paid="${inv.id}">Mark Paid</button>` : ""}
+        ${inv.status !== "paid" && inv.status !== "refunded" && inv.status !== "refunding" ? `<button class="btn-small" data-mark-paid="${inv.id}">Mark Paid</button>` : ""}
+        ${inv.status === "paid" && inv.amount_cents > 0 ? `<button class="btn-small" data-refund-inv="${inv.id}">Refund</button>` : ""}
         <button class="btn-small danger" data-delete-inv="${inv.id}">Delete</button>
       </td>`;
     tbody.appendChild(tr);
@@ -596,6 +630,17 @@ async function loadInvoices() {
         body: JSON.stringify({ status: "paid" }),
       });
       loadInvoices();
+    });
+    const invRefundBtn = tr.querySelector("[data-refund-inv]");
+    if (invRefundBtn) invRefundBtn.addEventListener("click", async () => {
+      if (inv.payment_provider !== "stripe") {
+        alert(`This invoice wasn't paid through Stripe (${inv.payment_provider || "marked paid manually"}), so it can't be refunded from here.`);
+        return;
+      }
+      if (!confirm(`Fully refund ${formatMoney(inv.amount_cents)} to ${inv.customer_name} in Stripe?\n\nIf this invoice is a session bundle, the customer's remaining session credits are removed. If it's for a session that hasn't happened yet, the session is cancelled.\n\nThis can't be undone.`)) return;
+      await runRefund(`${API_BASE}/admin/invoices/${inv.id}/refund`, invRefundBtn);
+      loadInvoices();
+      loadAppointments();
     });
     tr.querySelector("[data-delete-inv]").addEventListener("click", async () => {
       if (!confirm("Permanently delete this invoice? This can't be undone.")) return;
