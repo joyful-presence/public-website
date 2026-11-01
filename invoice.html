@@ -60,6 +60,8 @@
   }
   .invoice-status-badge.is-paid { background: var(--teal-pale); color: var(--teal-deep); }
   .invoice-status-badge.is-due { background: #FBF0DE; color: #A8721E; }
+  .invoice-status-badge.is-void { background: #F0E9E9; color: #8A3B3B; }
+  .invoice-notice { background: var(--teal-pale); color: var(--teal-deep); border-radius: 10px; padding: 12px 16px; font-size: 0.9rem; margin: 0 0 28px; }
   table.invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
   table.invoice-table th {
     text-align: left;
@@ -142,17 +144,24 @@ async function init() {
   if (!res.ok) { content.innerHTML = `<p style="text-align:center;">${data.error || "Invoice not found."}</p>`; return; }
 
   const inv = data.invoice;
-  const isPaid = inv.status === "paid" || justPaid === "1";
+  const isRefunded = inv.status === "refunded" || inv.status === "refunding";
+  const isVoid = inv.status === "void";
+  const isPaid = !isRefunded && !isVoid && (inv.status === "paid" || justPaid === "1");
   const isFree = inv.amount_cents === 0;
   const invoiceNumber = inv.id.slice(0, 8).toUpperCase();
 
-  const itemsHtml = data.items.map((it) => `
+  // A line with quantity 0 is a description-only line (e.g. what a session bundle includes).
+  const itemsHtml = data.items.map((it) => Number(it.quantity) === 0 ? `
+    <tr class="invoice-note-row">
+      <td colspan="4" style="padding-top:0; color:var(--ink-soft); font-size:0.88rem; text-align:left;">${it.description}</td>
+    </tr>` : `
     <tr>
       <td>${it.description}</td>
       <td>${it.quantity}</td>
       <td>${formatMoney(it.unit_price_cents)}</td>
       <td>${formatMoney(it.quantity * it.unit_price_cents)}</td>
     </tr>`).join("");
+  const notesHtml = inv.notes ? `<p class="invoice-notice"><strong>Please note:</strong> ${inv.notes}</p>` : "";
 
   content.innerHTML = `
     <div class="invoice-paper">
@@ -177,8 +186,8 @@ async function init() {
         </div>
       </div>
 
-      <span class="invoice-status-badge ${isFree ? "is-paid" : (isPaid ? "is-paid" : "is-due")}">${isFree ? "Complimentary" : (isPaid ? "Paid" : "Payment Due")}</span>
-      ${!isPaid && !isFree ? `<p class="small-note" style="color:#A8721E; margin-top:10px;"><strong>Payment is required before your session.</strong> Your Zoom link and passcode will be released once this invoice is paid.</p>` : ""}
+      <span class="invoice-status-badge ${isRefunded || isVoid ? "is-void" : (isFree ? "is-paid" : (isPaid ? "is-paid" : "is-due"))}">${isRefunded ? "Refunded" : (isVoid ? "Void" : (isFree ? "Complimentary" : (isPaid ? "Paid" : "Payment Due")))}</span>
+      ${!isPaid && !isFree && !isRefunded && !isVoid ? `<p class="small-note" style="color:#A8721E; margin-top:10px;"><strong>Payment is required before your session.</strong> Your Zoom link and passcode will be released once this invoice is paid.</p>` : ""}
 
       <table class="invoice-table">
         <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
@@ -190,12 +199,23 @@ async function init() {
         <span class="amount">${formatMoney(inv.amount_cents)}</span>
       </div>
 
+      ${notesHtml}
+
       <div class="invoice-section-label">Payment</div>
       <div id="pay-options"></div>
     </div>
   `;
 
   const optionsEl = document.getElementById("pay-options");
+
+  if (isRefunded) {
+    optionsEl.innerHTML = `<p>This invoice has been fully refunded to the original payment method. Most banks show the refund within 5-10 business days.</p>`;
+    return;
+  }
+  if (isVoid) {
+    optionsEl.innerHTML = `<p>This invoice was voided because the session was cancelled. No payment is needed.</p>`;
+    return;
+  }
 
   if (isPaid) {
     optionsEl.innerHTML = isFree
