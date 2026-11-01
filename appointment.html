@@ -158,12 +158,25 @@ async function init() {
   const cancelBtn = document.getElementById("cancel-btn");
   if (cancelBtn) {
     cancelBtn.addEventListener("click", async () => {
-      if (!confirm("Cancel this appointment?")) return;
-      await fetch(`${API_BASE}/api/appointments/${a.id}/cancel`, {
+      const hours = (new Date(a.start_time).getTime() - Date.now()) / 3600000;
+      const msg = hours >= 24
+        ? "Cancel this appointment?\n\nSince it's more than 24 hours away, you'll be refunded (or your session credit will be returned)."
+        : "Cancel this appointment?\n\nIt's less than 24 hours away, so per our cancellation policy it will NOT be refunded and any session credit will not be returned.";
+      if (!confirm(msg)) return;
+      const res = await fetch(`${API_BASE}/api/appointments/${a.id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
+      const r = await res.json().catch(() => ({}));
+      if (res.ok) {
+        if (r.refund === "card") alert("Your appointment is cancelled and a full refund has been issued to your card. Most banks show it within 5-10 business days.");
+        else if (r.refund === "credit") alert("Your appointment is cancelled and your session credit has been returned to your bundle.");
+        else if (r.refund === "voided") alert("Your appointment is cancelled and the unpaid invoice has been voided — nothing is owed.");
+        else if (r.refund === "manual" || r.refund === "failed") alert("Your appointment is cancelled. Your refund needs a quick manual step on our end — we'll be in touch shortly.");
+        else if (r.late) alert("Your appointment is cancelled. Because it was less than 24 hours away, it is not eligible for a refund.");
+        else alert("Your appointment is cancelled.");
+      }
       init();
     });
   }
