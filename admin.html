@@ -596,7 +596,7 @@ async function runRefund(url, btn) {
       return;
     }
     if (data.method === "credit") alert("Done — the session credit was returned to the customer's bundle.");
-    else alert(`Refunded ${formatMoney(data.amount_cents || 0)} to the customer's card.${data.credits ? " Their remaining session credits were removed." : ""}`);
+    else alert(`Refunded ${formatMoney(data.amount_cents || 0)} to the customer's card.${data.credits ? " The bundle's session credits were removed." : ""}`);
   } catch (err) {
     alert("Something went wrong — check Stripe before trying again.");
   } finally {
@@ -637,7 +637,7 @@ async function loadInvoices() {
         alert(`This invoice wasn't paid through Stripe (${inv.payment_provider || "marked paid manually"}), so it can't be refunded from here.`);
         return;
       }
-      if (!confirm(`Fully refund ${formatMoney(inv.amount_cents)} to ${inv.customer_name} in Stripe?\n\nIf this invoice is a session bundle, the customer's remaining session credits are removed. If it's for a session that hasn't happened yet, the session is cancelled.\n\nThis can't be undone.`)) return;
+      if (!confirm(`Fully refund ${formatMoney(inv.amount_cents)} to ${inv.customer_name} in Stripe?\n\nIf this invoice is a session bundle, it can only be refunded if none of its sessions have been used, and its credits are removed. If it's for a session that hasn't happened yet, the session is cancelled.\n\nThis can't be undone.`)) return;
       await runRefund(`${API_BASE}/admin/invoices/${inv.id}/refund`, invRefundBtn);
       loadInvoices();
       loadAppointments();
