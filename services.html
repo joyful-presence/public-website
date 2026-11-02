@@ -83,6 +83,19 @@
 
 <script src="app-config.js"></script>
 <script>
+// Shows sign-in problems (e.g. "please verify your email") sent back by the login flow.
+(function () {
+  const msg = new URLSearchParams(location.search).get("auth_error");
+  if (!msg) return;
+  const box = document.createElement("div");
+  box.setAttribute("role", "alert");
+  box.style.cssText = "max-width:840px;margin:24px auto 0;padding:14px 18px;border-radius:10px;background:#FBF0DE;color:#7A4A0C;font-size:0.95rem;text-align:center;";
+  box.textContent = msg;
+  const main = document.querySelector("main");
+  if (main) main.insertBefore(box, main.firstChild);
+})();
+</script>
+<script>
 async function loadServices() {
   const res = await fetch(`${API_BASE}/api/services`);
   const data = await res.json();
