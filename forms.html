@@ -161,8 +161,8 @@ function renderGeneral(documents, wrap) {
     <div class="signed-in-box" style="margin-bottom:24px;">
       Sign in to see exactly which of these you still need to complete, with direct download/sign links.
       <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-        <a class="btn-small" href="${API_BASE}/auth/google/start?return_to=${encodeURIComponent("/forms.html")}">Continue with Google</a>
-        <a class="btn-small" href="${API_BASE}/auth/sso/start?return_to=${encodeURIComponent("/forms.html")}">Sign In / Create Account</a>
+        <a class="btn-small" href="${API_BASE}/auth/auth0/start?connection=google-oauth2&return_to=${encodeURIComponent(location.origin + "/forms.html")}">Continue with Google</a>
+        <a class="btn-small" href="${API_BASE}/auth/auth0/start?return_to=${encodeURIComponent(location.origin + "/forms.html")}">Sign In / Create Account</a>
       </div>
     </div>
   ` + documents.map((d) => `
