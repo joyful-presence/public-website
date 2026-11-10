@@ -1,9 +1,28 @@
+# 0. Agent discovery: Link headers on the homepage (RFC 8288 / RFC 9727)
+/
+  Link: </.well-known/api-catalog>; rel="api-catalog"
+  Link: </.well-known/agent-skills/coaching-services/SKILL.md>; rel="service-doc"; type="text/markdown"
+  Link: </.well-known/ai-catalog.json>; rel="describedby"; type="application/json"
+  Link: </.well-known/agent-skills/index.json>; rel="describedby"; type="application/json"
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+
+# 0b. ARD manifest: correct type + open CORS so any agent or registry can read it
+/.well-known/ai-catalog.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+/.well-known/*
+  Access-Control-Allow-Origin: *
+
 # 1. Advertise the API Catalog
 /.well-known/api-catalog
   Content-Type: application/linkset+json
 
 # 2. Link each HTML page to its specific Markdown alternative
 /index.html
+  Link: </.well-known/api-catalog>; rel="api-catalog"
+  Link: </.well-known/agent-skills/coaching-services/SKILL.md>; rel="service-doc"; type="text/markdown"
+  Link: </.well-known/ai-catalog.json>; rel="describedby"; type="application/json"
   Link: </index.md>; rel="alternate"; type="text/markdown"
 /about.html
   Link: </about.md>; rel="alternate"; type="text/markdown"
@@ -26,3 +45,4 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
+  Content-Signal: ai-train=no, search=yes, ai-input=yes
