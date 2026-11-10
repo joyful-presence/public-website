@@ -1,45 +1,47 @@
-==================================================
+# ==================================================
 
-Joyfully Present — Robots Policy
+# Joyfully Present — Robots Policy
 
-https://joyfullypresent.life
+# https://joyfullypresent.life
 
-==================================================
+# ==================================================
 
-Policy:
+# Policy:
 
-- Allow approved major search engine crawlers.
+# - Allow approved major search engine crawlers.
 
-- Public-facing HTML pages only.
+# - Public-facing HTML pages only.
 
-- Do not crawl administrative interfaces.
+# - Do not crawl administrative interfaces.
 
-- Do not crawl authentication services or API endpoints.
+# - Do not crawl authentication services or API endpoints.
 
-- All other crawlers are disallowed.
+# - All other crawlers are disallowed.
 
-IMPORTANT:
+# IMPORTANT:
 
-Never visit or crawl:
+# Never visit or crawl:
 
-auth.joyfullypresent.life
+# auth.joyfullypresent.life
 
-api.joyfullypresent.life
+# api.joyfullypresent.life
 
-==================================================
+# ==================================================
 
-Default: Block all crawlers
+# Default: Block all crawlers
 
 User-agent: *
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Disallow: /
 
-==================================================
+# ==================================================
 
-Google Search
+# Google Search
 
-==================================================
+# ==================================================
 
 User-agent: Googlebot
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -50,9 +52,10 @@ Disallow: /admin-login/
 Disallow: /api/
 Disallow: /auth/
 
-Google Images
+# Google Images
 
 User-agent: Googlebot-Image
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -61,13 +64,14 @@ Disallow: /admin-setup/
 Disallow: /admin-login
 Disallow: /admin-login/
 
-==================================================
+# ==================================================
 
-Microsoft Bing
+# Microsoft Bing
 
-==================================================
+# ==================================================
 
 User-agent: Bingbot
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -78,13 +82,14 @@ Disallow: /admin-login/
 Disallow: /api/
 Disallow: /auth/
 
-==================================================
+# ==================================================
 
-Apple Search
+# Apple Search
 
-==================================================
+# ==================================================
 
 User-agent: Applebot
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -95,13 +100,14 @@ Disallow: /admin-login/
 Disallow: /api/
 Disallow: /auth/
 
-==================================================
+# ==================================================
 
-DuckDuckGo
+# DuckDuckGo
 
-==================================================
+# ==================================================
 
 User-agent: DuckDuckBot
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -112,13 +118,14 @@ Disallow: /admin-login/
 Disallow: /api/
 Disallow: /auth/
 
-==================================================
+# ==================================================
 
-Yahoo Search
+# Yahoo Search
 
-==================================================
+# ==================================================
 
 User-agent: Slurp
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 Allow: /
 Disallow: /admin
 Disallow: /admin/
@@ -129,10 +136,11 @@ Disallow: /admin-login/
 Disallow: /api/
 Disallow: /auth/
 
-==================================================
+# ==================================================
 
-Sitemap
+# Sitemap
 
-==================================================
+# ==================================================
 
 Sitemap: https://joyfullypresent.life/sitemap.xml
+Agentmap: https://joyfullypresent.life/.well-known/ai-catalog.json
