@@ -6,6 +6,10 @@ const API_BASE = "https://api.joyfullypresent.life";
 // Get this from developer.paypal.com > Apps & Credentials.
 const PAYPAL_CLIENT_ID = "YOUR_PAYPAL_CLIENT_ID";
 
+// Cloudflare Turnstile SITE key (public, safe to keep here). Create it at
+// Cloudflare Dashboard > Turnstile > Add widget. Leave as-is to keep the spam check off.
+const TURNSTILE_SITE_KEY = "0x4AAAAAAF67e7nP9r-40grD";
+
 function formatMoney(cents) {
   return "$" + (cents / 100).toFixed(2);
 }
