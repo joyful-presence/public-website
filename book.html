@@ -105,11 +105,18 @@
             <label for="g-phone">Phone (optional)</label>
             <input type="tel" id="g-phone">
           </div>
+          <!-- Hidden trap field: real people never see or fill this; bots that auto-fill every field do. -->
+          <div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+            <label for="g-website">Leave this field empty</label>
+            <input type="text" id="g-website" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <div id="turnstile-box" style="margin:12px 0;"></div>
+          <p id="turnstile-note" class="small-note" style="display:none; margin:0 0 12px;">Please complete the security check above to continue. If it doesn't appear, refresh the page or turn off any ad blocker for this site.</p>
         </div>
 
         <div class="wizard-actions">
           <button class="btn btn-ghost" onclick="goToStep(selectedService && selectedService.is_package ? 1 : 2)">Back</button>
-          <button class="btn btn-primary" onclick="submitBooking()">Confirm Booking</button>
+          <button class="btn btn-primary" id="confirm-btn" onclick="submitBooking()">Confirm Booking</button>
         </div>
       </div>
 
@@ -159,6 +166,7 @@
   </div>
 </footer>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="app-config.js"></script>
 <script>
 let selectedService = null;
@@ -303,7 +311,46 @@ async function checkSignedIn() {
   } else {
     document.getElementById("signed-in-view").style.display = "none";
     document.getElementById("guest-view").style.display = "block";
+    ensureTurnstile();
   }
+}
+
+// ---- Cloudflare Turnstile (spam check for guest bookings only) ----
+let turnstileWidgetId = null;
+function turnstileEnabled() {
+  return typeof TURNSTILE_SITE_KEY === "string" && TURNSTILE_SITE_KEY && !TURNSTILE_SITE_KEY.startsWith("YOUR_");
+}
+function ensureTurnstile() {
+  if (!turnstileEnabled() || turnstileWidgetId !== null) return;
+  const tryRender = () => {
+    if (!window.turnstile) return false;
+    // "always" = the checkbox is always shown. Turnstile decides how hard the challenge is:
+    // real visitors usually pass with one click, suspicious ones get a harder puzzle.
+    turnstileWidgetId = window.turnstile.render("#turnstile-box", {
+      sitekey: TURNSTILE_SITE_KEY,
+      appearance: "always",
+      callback: () => setConfirmEnabled(true),
+      "expired-callback": () => setConfirmEnabled(false),
+      "error-callback": () => setConfirmEnabled(false),
+    });
+    return true;
+  };
+  // Guests can't press Confirm until the check is solved.
+  setConfirmEnabled(false);
+  document.getElementById("turnstile-note").style.display = "block";
+  if (!tryRender()) {
+    const timer = setInterval(() => { if (tryRender()) clearInterval(timer); }, 300);
+  }
+}
+function resetTurnstile() {
+  if (turnstileWidgetId !== null && window.turnstile) {
+    window.turnstile.reset(turnstileWidgetId);
+    setConfirmEnabled(false);
+  }
+}
+function setConfirmEnabled(on) {
+  const btn = document.getElementById("confirm-btn");
+  if (btn) { btn.disabled = !on; btn.style.opacity = on ? "" : "0.55"; btn.style.cursor = on ? "" : "not-allowed"; }
 }
 
 async function submitBooking() {
@@ -320,6 +367,12 @@ async function submitBooking() {
     const phone = document.getElementById("g-phone").value.trim();
     if (!name || !email) { showError("Please enter your name and email."); return; }
     body.guest = { name, email, phone };
+    body.website = document.getElementById("g-website").value; // honeypot — must stay empty
+    if (turnstileEnabled()) {
+      const token = turnstileWidgetId !== null && window.turnstile ? window.turnstile.getResponse(turnstileWidgetId) : "";
+      if (!token) { showError("Please complete the spam check below before confirming."); return; }
+      body.turnstile_token = token;
+    }
   }
 
   const res = await fetch(`${API_BASE}/api/book`, {
@@ -330,7 +383,11 @@ async function submitBooking() {
   });
   const data = await res.json();
 
-  if (!res.ok) { showError(data.error || "Something went wrong — please try again."); return; }
+  if (!res.ok) {
+    showError(data.error || "Something went wrong — please try again.");
+    resetTurnstile(); // each check can only be used once
+    return;
+  }
 
   if (data.package) {
     document.getElementById("confirm-summary").textContent = `${data.service_name} — ${data.sessions_granted} sessions added to your account`;
