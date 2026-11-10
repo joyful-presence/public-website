@@ -1,0 +1,138 @@
+==================================================
+
+Joyfully Present — Robots Policy
+
+https://joyfullypresent.life
+
+==================================================
+
+Policy:
+
+- Allow approved major search engine crawlers.
+
+- Public-facing HTML pages only.
+
+- Do not crawl administrative interfaces.
+
+- Do not crawl authentication services or API endpoints.
+
+- All other crawlers are disallowed.
+
+IMPORTANT:
+
+Never visit or crawl:
+
+auth.joyfullypresent.life
+
+api.joyfullypresent.life
+
+==================================================
+
+Default: Block all crawlers
+
+User-agent: *
+Disallow: /
+
+==================================================
+
+Google Search
+
+==================================================
+
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+Disallow: /api/
+Disallow: /auth/
+
+Google Images
+
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+
+==================================================
+
+Microsoft Bing
+
+==================================================
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+Disallow: /api/
+Disallow: /auth/
+
+==================================================
+
+Apple Search
+
+==================================================
+
+User-agent: Applebot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+Disallow: /api/
+Disallow: /auth/
+
+==================================================
+
+DuckDuckGo
+
+==================================================
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+Disallow: /api/
+Disallow: /auth/
+
+==================================================
+
+Yahoo Search
+
+==================================================
+
+User-agent: Slurp
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin-setup
+Disallow: /admin-setup/
+Disallow: /admin-login
+Disallow: /admin-login/
+Disallow: /api/
+Disallow: /auth/
+
+==================================================
+
+Sitemap
+
+==================================================
+
+Sitemap: https://joyfullypresent.life/sitemap.xml
