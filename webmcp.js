@@ -1,11 +1,11 @@
 // Joyfully Present — WebMCP tools.
-// Exposes the site's key actions to in-browser AI agents via navigator.modelContext.
+// Exposes the site's key actions to in-browser AI agents via document.modelContext (falls back to navigator.modelContext).
 // Every tool is read-only or simple navigation. Nothing here can book, pay, cancel or change data;
 // booking is completed by the person on book.html (where the security check lives).
 (function () {
   "use strict";
 
-  var mc = navigator.modelContext;
+  var mc = document.modelContext || navigator.modelContext; // newer builds: document, older Chrome: navigator
   if (!mc || typeof mc.registerTool !== "function") return; // browser doesn't support WebMCP
 
   var API_BASE = "https://api.joyfullypresent.life";
@@ -210,7 +210,8 @@
     controller = new AbortController();
     tools.forEach(function (tool) {
       try {
-        mc.registerTool(tool, { signal: controller.signal });
+        var p = mc.registerTool(tool, { signal: controller.signal });
+        if (p && typeof p.catch === "function") p.catch(function (err) { console.warn("WebMCP: could not register " + tool.name, err); });
       } catch (err) {
         console.warn("WebMCP: could not register " + tool.name, err);
       }
