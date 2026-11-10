@@ -348,3 +348,9 @@ table.admin-table tr:last-child td { border-bottom: none; }
 }
 
 .small-note { color: var(--ink-soft); font-size: 0.85rem; }
+
+/* Booking steps: wrap on very small phones so nothing is cut off */
+.steps { flex-wrap: wrap; }
+@media (max-width: 380px) {
+  .step-dot { gap: 5px; font-size: 0.8rem; }
+}
