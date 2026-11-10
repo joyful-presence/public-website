@@ -1,24 +1,51 @@
 {
-  "linkset": [
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Joyfully Present Life Coaching LLC",
+    "identifier": "did:web:joyfullypresent.life"
+  },
+  "entries": [
     {
-      "anchor": "https://joyfullypresent.life/api/v1",
-      "service-desc": [
-        {
-          "href": "https://joyfullypresent.life/openapi.yaml",
-          "type": "application/vnd.oai.openapi"
-        }
-      ],
-      "service-doc": [
-        {
-          "href": "https://joyfullypresent.life/docs/api",
-          "type": "text/html"
-        }
-      ],
-      "status": [
-        {
-          "href": "https://status.joyfullypresent.life",
-          "type": "text/html"
-        }
+      "identifier": "urn:air:joyfullypresent.life:skill:coaching-services",
+      "displayName": "Coaching Services Guide",
+      "type": "text/markdown",
+      "url": "https://joyfullypresent.life/.well-known/agent-skills/coaching-services/SKILL.md",
+      "representativeQueries": [
+        "what stress and anxiety coaching sessions are offered",
+        "how much does a life coaching session cost",
+        "are there coaching session bundles or packages",
+        "how do I book a free discovery call with a life coach"
+      ]
+    },
+    {
+      "identifier": "urn:air:joyfullypresent.life:skills:index",
+      "displayName": "Agent Skills Index",
+      "type": "application/json",
+      "url": "https://joyfullypresent.life/.well-known/agent-skills/index.json",
+      "representativeQueries": [
+        "list the agent skills available on this site",
+        "what can an AI agent do with Joyfully Present Life Coaching"
+      ]
+    },
+    {
+      "identifier": "urn:air:joyfullypresent.life:api:catalog",
+      "displayName": "API Catalog",
+      "type": "application/linkset+json",
+      "url": "https://joyfullypresent.life/.well-known/api-catalog",
+      "representativeQueries": [
+        "where is the API catalog for Joyfully Present",
+        "find the service documentation for the coaching booking API"
+      ]
+    },
+    {
+      "identifier": "urn:air:joyfullypresent.life:server:site-card",
+      "displayName": "Joyfully Present MCP Server Card",
+      "type": "application/mcp-server-card+json",
+      "url": "https://joyfullypresent.life/.well-known/mcp/server-card.json",
+      "representativeQueries": [
+        "MCP server for a life coaching business",
+        "which tools can an agent use to check coaching availability",
+        "connect an agent to Joyfully Present Life Coaching"
       ]
     }
   ]
