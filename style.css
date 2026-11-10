@@ -36,6 +36,9 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 body {
@@ -46,6 +49,9 @@ body {
   font-size: 17px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  max-width: 100%;
+  overflow-x: clip;
+  overflow-wrap: break-word;
 }
 
 img { max-width: 100%; display: block; }
@@ -295,8 +301,8 @@ p { margin: 0 0 1.1em; color: var(--ink-soft); }
 }
 
 .breath-ring.r1 { width: 180px; height: 180px; }
-.breath-ring.r2 { width: 260px; height: 260px; border-color: var(--btn); }
-.breath-ring.r3 { width: 340px; height: 340px; opacity: 0.2; }
+.breath-ring.r2 { width: 260px; height: 260px; border-color: var(--btn); max-width: 72%; max-height: 72%; }
+.breath-ring.r3 { width: 340px; height: 340px; opacity: 0.2; max-width: 90%; max-height: 90%; }
 
 .breath-core {
   width: 130px;
@@ -596,7 +602,8 @@ section { padding: 78px 0; }
 
 .footer-links {
   display: flex;
-  gap: 28px;
+  flex-wrap: wrap;
+  gap: 10px 28px;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -633,6 +640,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 @media (max-width: 480px) {
+  .nav { padding-left: 20px; padding-right: 20px; }
   .brand span { font-size: 1.3rem; }
   .brand img { height: 32px; }
 }
@@ -645,3 +653,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
 }
 
 .page-hero .wrap { max-width: 720px; }
+
+@media (max-width: 360px) {
+  .brand span { font-size: 1.15rem; }
+  .brand span .tagline { letter-spacing: 0.03em; }
+  .wrap { padding-left: 20px; padding-right: 20px; }
+}
