@@ -659,3 +659,64 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   .brand span .tagline { letter-spacing: 0.03em; }
   .wrap { padding-left: 20px; padding-right: 20px; }
 }
+
+/* ---------- hero photo (replaces breathing circle on the homepage) ---------- */
+
+.hero-photo {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-photo img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(60, 90, 100, 0.18);
+}
+
+/* ---------- mobile polish ---------- */
+
+@media (max-width: 700px) {
+  body { font-size: 16px; }
+
+  section { padding: 52px 0; }
+
+  .wrap { padding-left: 20px; padding-right: 20px; }
+
+  .hero { padding: 24px 20px 48px; }
+  .hero-inner { gap: 32px; }
+  .hero-copy { text-align: left; }
+
+  h1 { font-size: clamp(2rem, 8.5vw, 2.5rem); line-height: 1.15; }
+  h2 { font-size: clamp(1.5rem, 6.5vw, 1.9rem); line-height: 1.2; }
+
+  .hero-copy p.lead { font-size: 1.05rem; max-width: none; }
+
+  .hero-actions { flex-direction: column; gap: 12px; }
+  .hero-actions .btn { width: 100%; justify-content: center; text-align: center; }
+
+  .hero-photo img { max-width: 300px; }
+
+  .section-head { margin-bottom: 28px; }
+
+  .page-hero { padding: 40px 20px 12px; }
+}
+
+@media (max-width: 700px) {
+  .pillars { gap: 14px; }
+  .pillar {
+    padding: 18px 18px 20px;
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: var(--radius-md);
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    column-gap: 14px;
+    align-items: start;
+  }
+  .pillar-mark { width: 36px; height: 36px; margin: 2px 0 0; grid-row: 1 / span 2; }
+  .pillar h3 { margin: 0 0 6px; }
+  .pillar p { margin: 0; grid-column: 2; }
+}
